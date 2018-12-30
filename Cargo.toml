@@ -1,0 +1,8 @@
+[package]
+name = "sc_client"
+version = "0.1.0"
+authors = ["Ales Tsurko <ales.tsurko@gmail.com>"]
+
+[dependencies]
+config = "^0.9"
+rosc = "~0.1"
