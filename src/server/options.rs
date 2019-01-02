@@ -29,7 +29,7 @@ pub struct Options {
 
 impl Options {
     pub fn new(config: &Config) -> Self {
-        let opts: Options = config.get("server").unwrap();
+        let opts = config.clone().deserialize::<Options>().unwrap();
         opts.check();
         opts
     }

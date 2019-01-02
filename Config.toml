@@ -1,4 +1,3 @@
-[server]
 path = "/path/to/supernova"
 udp_port_number = 0
 tcp_port_number = 4242
