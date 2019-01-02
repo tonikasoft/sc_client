@@ -1,8 +1,8 @@
 [server]
 path = "/path/to/supernova"
 udp_port_number = 0
-tcp_port_number = 0
-verbosity = -1
+tcp_port_number = 4242
+verbosity = 0
 num_audio_bus_channels = 0
 num_input_bus_channels = 0
 num_output_bus_channels = 0

@@ -6,12 +6,14 @@ use std::env;
 use std::net::{UdpSocket, SocketAddrV4};
 use std::str::FromStr;
 use rosc::OscPacket;
-use sc_client::server::Server;
+use sc_client::server;
+use sc_client::server::{Server, options::Options};
 use config::{Config, File};
 
 fn main() {
     let config = init_config();
-    let server = Server::new(&config);
+    let options = Options::new(&config);
+    let server = Server::new(options);
     server.say_hello();
 
     let args: Vec<String> = env::args().collect();

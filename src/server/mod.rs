@@ -3,17 +3,14 @@ pub mod options;
 use config::{Config, File};
 use self::options::Options;
 
-pub struct Server<'a> {
-    pub options: Options,
-    config: &'a Config
+pub struct Server {
+    pub options: Options
 }
 
-impl<'a> Server<'a> {
-    pub fn new(config: &'a Config) -> Self {
-        let options = Options::new(config);
+impl Server {
+    pub fn new(options: Options) -> Self {
         Server {
             options: options,
-            config: config
         }
     }
 
