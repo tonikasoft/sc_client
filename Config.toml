@@ -1,2 +1,24 @@
 [server]
 path = "/path/to/supernova"
+udp_port_number = 0
+tcp_port_number = 0
+verbosity = -1
+num_audio_bus_channels = 0
+num_input_bus_channels = 0
+num_output_bus_channels = 0
+num_control_bus_channels = 0
+num_buffers = 0
+max_nodes = 0
+max_synth_defs = 0
+load_synth_defs = true
+block_size = 0
+preferred_hardware_buffer_size = 0
+preferred_sample_rate = 0
+real_time_memory_size = 0
+random_number_generators = 0
+max_interconnect_buffers = 0
+max_logins = 0
+session_password = ""
+device_name = ""
+input_streams_enable_string = ""
+output_streams_enable_string = ""

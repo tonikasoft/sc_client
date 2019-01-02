@@ -4,23 +4,21 @@ use config::{Config, File};
 use self::options::Options;
 
 pub struct Server<'a> {
-    // pub options: Options,
+    pub options: Options,
     config: &'a Config
 }
 
 impl<'a> Server<'a> {
     pub fn new(config: &'a Config) -> Self {
+        let options = Options::new(config);
         Server {
-            // options: Options { audio_busses: 64 },
+            options: options,
             config: config
         }
     }
 
     pub fn say_hello(&self) {
-        let server_path = self.config
-            .get::<String>("server.path")
-            .expect("server.path isn't specified in config");
-        println!("Hello Server, {}", server_path);
+        println!("Hello Server, {}", self.options.path);
     }
 
     pub fn boot(&self) {

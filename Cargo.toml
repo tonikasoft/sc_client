@@ -6,3 +6,6 @@ authors = ["Ales Tsurko <ales.tsurko@gmail.com>"]
 [dependencies]
 config = "^0.9"
 rosc = "~0.1"
+serde = "^1.0.0"
+serde_derive = "^1.0.0"
+
