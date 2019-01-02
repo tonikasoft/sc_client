@@ -1,18 +1,17 @@
+pub mod options;
+
 use config::{Config, File};
+use self::options::Options;
 
 pub struct Server<'a> {
-    pub options: Options,
+    // pub options: Options,
     config: &'a Config
-}
-
-pub struct Options {
-    pub audio_busses: u64
 }
 
 impl<'a> Server<'a> {
     pub fn new(config: &'a Config) -> Self {
         Server {
-            options: Options { audio_busses: 64 },
+            // options: Options { audio_busses: 64 },
             config: config
         }
     }
