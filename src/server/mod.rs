@@ -1,6 +1,4 @@
 pub mod options;
-
-use config::{Config, File};
 use self::options::Options;
 
 pub struct Server {

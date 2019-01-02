@@ -1,18 +1,14 @@
 extern crate sc_client;
 extern crate rosc;
-extern crate config;
 
 use std::env;
 use std::net::{UdpSocket, SocketAddrV4};
 use std::str::FromStr;
 use rosc::OscPacket;
-use sc_client::server;
 use sc_client::server::{Server, options::Options};
-use config::{Config, File};
 
 fn main() {
-    let config = init_config();
-    let options = Options::new(&config);
+    let options = Options::new("Config");
     let server = Server::new(options);
     server.say_hello();
 
@@ -45,16 +41,6 @@ fn main() {
         }
     }
 }
-
-fn init_config() -> Config {
-    let mut config = Config::new();
-    let config_file = File::with_name("Config");
-    config
-        .merge(config_file)
-        .expect("Error reading Config.toml")
-        .to_owned()
-}
-
 
 fn handle_packet(packet: OscPacket) {
     match packet {

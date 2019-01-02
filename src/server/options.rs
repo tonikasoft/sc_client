@@ -1,4 +1,4 @@
-use config::Config;
+use config::{Config, File};
 
 #[derive(Deserialize)]
 pub struct Options {
@@ -28,8 +28,9 @@ pub struct Options {
 }
 
 impl Options {
-    pub fn new(config: &Config) -> Self {
-        let opts = config.clone().deserialize::<Options>().unwrap();
+    pub fn new(file_name: &str) -> Self {
+        let config = Options::init_config_with_name(file_name);
+        let opts = config.deserialize::<Options>().unwrap();
         opts.check();
         opts
     }
@@ -38,5 +39,14 @@ impl Options {
         if self.udp_port_number == 0 && self.tcp_port_number == 0 {
             panic!("Either TCP or UDP port should be specified in the configuration file")
         }
+    }
+
+    fn init_config_with_name(file_name: &str) -> Config {
+        let mut config = Config::new();
+        let config_file = File::with_name(file_name);
+        config
+            .merge(config_file)
+            .expect(&format!("Error reading {}.toml", file_name))
+            .to_owned()
     }
 }
