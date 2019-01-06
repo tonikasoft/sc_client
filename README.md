@@ -1,5 +1,6 @@
 Put options inside a configuration file, which you pass to `Options` at initialization.
 The next options are available:
+
 | Option                           | Description                                                                                                                                                                                                                                                                                                                      |
 | ------                           | -----------                                                                                                                                                                                                                                                                                                                      |
 | `udp_port_number`                | A port number 0-65535.                                                                                                                                                                                                                                                                                                           |
