@@ -1,4 +1,4 @@
-path = "/Applications/SuperCollider.app/Contents/Resources/supernova"
+path = "/Applications/SuperCollider.app/Contents/Resources/scsynth"
 udp_port_number = 0
 tcp_port_number = 4242
 verbosity = 0
