@@ -81,7 +81,7 @@ impl Default for Options {
             num_input_bus_channels: 8,
             num_output_bus_channels: 8,
             output_streams_enable_string: None,
-            path: String::from("/Applications/SuperCollider.app/Contents/Resources/supernova"),
+            path: String::from("/Applications/SuperCollider.app/Contents/Resources/scsynth"),
             preferred_hardware_buffer_size: 0,
             preferred_sample_rate: 0,
             publish_to_rendezvous: true,
