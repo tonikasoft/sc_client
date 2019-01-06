@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/tonikasoft/sc_client.svg?branch=master)](https://travis-ci.org/tonikasoft/sc_client)
+
 Put options inside a configuration file, which you pass to `Options` at initialization.
 The next options are available:
 
