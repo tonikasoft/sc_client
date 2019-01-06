@@ -8,7 +8,7 @@ use rosc::OscPacket;
 use sc_client::server::{Server, options::Options};
 
 fn main() {
-    let options = Options::new("Config");
+    let options = Options::new("settings.toml");
     let server = Server::new(options);
     server.say_hello();
 
