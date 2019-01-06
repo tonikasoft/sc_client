@@ -18,7 +18,7 @@ impl Server {
 
     pub fn boot(&mut self) {
         if self.process.is_some() {
-            return println!("SuperCollider server already run.");
+            return println!("SuperCollider server is already running.");
         }
 
         self.process = match Command::new(self.options.path.clone())

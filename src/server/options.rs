@@ -1,71 +1,36 @@
 use config::{Config, ConfigError, File};
 use std::path::Path;
 
-   // -B <bind-to-address>    an IP address
-   // -c <number-of-control-bus-channels> (default 16384)
-   // -a <number-of-audio-bus-channels>   (default 1024)
-   // -i <number-of-input-bus-channels>   (default 8)
-   // -o <number-of-output-bus-channels>  (default 8)
-   // -z <block-size>                     (default 64)
-   // -Z <hardware-buffer-size>           (default 0)
-   // -S <hardware-sample-rate>           (default 0)
-   // -b <number-of-sample-buffers>       (default 1024)
-   // -n <max-number-of-nodes>            (default 1024)
-   // -d <max-number-of-synth-defs>       (default 1024)
-   // -m <real-time-memory-size>          (default 8192)
-   // -w <number-of-wire-buffers>         (default 64)
-   // -r <number-of-random-seeds>         (default 64)
-   // -D <load synthdefs? 1 or 0>         (default 1)
-   // -R <publish to Rendezvous? 1 or 0>  (default 1)
-   // -l <max-logins>                     (default 64)
-          // maximum number of named return addresses stored
-          // also maximum number of tcp connections accepted
-   // -p <session-password>
-          // When using TCP, the session password must be the first command sent.
-          // The default is no password.
-          // UDP ports never require passwords, so for security use TCP.
-   // -N <cmd-filename> <input-filename> <output-filename> <sample-rate> <header-format> <sample-format>
-   // -I <input-streams-enabled>
-   // -O <output-streams-enabled>
-   // -H <hardware-device-name>
-   // -V <verbosity>
-          // 0 is normal behaviour.
-          // -1 suppresses informational messages.
-          // -2 suppresses informational and many error messages, as well as
-             // messages from Poll.
-          // The default is 0.
-   // -U <ugen-plugins-path>
-          // A list of paths seperated by `:`.
-          // If specified, standard paths are NOT searched for plugins.
-   // -P <restricted-path>
-          // if specified, prevents file-accessing OSC commands from
-          // accessing files outside <restricted-path>.
 #[derive(Serialize, Deserialize)] 
 pub struct Options {
     /// A path to SuperCollider server.
-    pub path: String,
-    pub udp_port_number: u16,
-    pub tcp_port_number: u16,
-    pub verbosity: u8,
-    pub num_audio_bus_channels: u16,
-    pub num_input_bus_channels: u16,
-    pub num_output_bus_channels: u16,
-    pub num_control_bus_channels: u16,
-    pub num_buffers: u16,
-    pub max_nodes: u16,
-    pub max_synth_defs: u32,
-    pub load_synth_defs: bool,
+    pub bind_to_address: String
     pub block_size: u16,
-    pub preferred_hardware_buffer_size: u16,
-    pub preferred_sample_rate: u64,
-    pub real_time_memory_size: u64,
-    pub random_number_generators: u16,
-    pub max_interconnect_buffers: u32,
-    pub max_logins: u64,
-    pub session_password: Option<String>,
     pub device_name: Option<String>,
     pub input_streams_enable_string: Option<String>,
+    pub load_synth_defs: bool,
+    pub max_interconnect_buffers: u32,
+    pub max_logins: u64,
+    pub max_nodes: u16,
+    pub max_synth_defs: u32,
+    pub num_audio_bus_channels: u16,
+    pub num_buffers: u16,
+    pub num_control_bus_channels: u16,
+    pub num_input_bus_channels: u16,
+    pub num_output_bus_channels: u16,
     pub output_streams_enable_string: Option<String>,
+    pub path: String,
+    pub preferred_hardware_buffer_size: u16,
+    pub preferred_sample_rate: u64,
+    pub publish_to_rendezvous: bool,
+    pub random_number_generators: u16,
+    pub real_time_memory_size: u64,
+    pub restricted_path: Option<String>,
+    pub session_password: Option<String>,
+    pub tcp_port_number: u16,
+    pub udp_port_number: u16,
+    pub ugen_plugins_path: Option<String>,
+    pub verbosity: u8,
 }
 
 impl Options {
@@ -103,29 +68,33 @@ impl Options {
 impl Default for Options {
     fn default() -> Self {
         Options {
-            path: String::from("/Applications/SuperCollider.app/Contents/Resources/supernova"),
-            udp_port_number: 0,
-            tcp_port_number: 4242,
-            verbosity: 0,
-            num_audio_bus_channels: 1024,
-            num_input_bus_channels: 8,
-            num_output_bus_channels: 8,
-            num_control_bus_channels: 16384,
-            num_buffers: 1024,
-            max_nodes: 1024,
-            max_synth_defs: 1024,
-            load_synth_defs: true,
+            bind_to_address: "127.0.0.1",
             block_size: 64,
-            preferred_hardware_buffer_size: 512,
-            preferred_sample_rate: 44100,
-            real_time_memory_size: 8192,
-            random_number_generators: 64,
-            max_interconnect_buffers: 64,
-            max_logins: 64,
-            session_password: None,
             device_name: None,
             input_streams_enable_string: None,
+            load_synth_defs: true,
+            max_interconnect_buffers: 64,
+            max_logins: 64,
+            max_nodes: 1024,
+            max_synth_defs: 1024,
+            num_audio_bus_channels: 1024,
+            num_buffers: 1024,
+            num_control_bus_channels: 16384,
+            num_input_bus_channels: 8,
+            num_output_bus_channels: 8,
             output_streams_enable_string: None,
+            path: String::from("/Applications/SuperCollider.app/Contents/Resources/supernova"),
+            preferred_hardware_buffer_size: 0,
+            preferred_sample_rate: 0,
+            publish_to_rendezvous: true,
+            random_number_generators: 64,
+            real_time_memory_size: 8192,
+            restricted_path: None,
+            session_password: None,
+            tcp_port_number: 4242,
+            udp_port_number: 0,
+            ugen_plugins_path: None,
+            verbosity: 0,
         }
     }
 }
