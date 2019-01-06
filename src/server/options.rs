@@ -33,7 +33,6 @@ pub struct Options {
 }
 
 impl Options {
-    /// `file_path` - the path to the configuration file.
     pub fn new(file_path: &str) -> Self {
         let config = Options::init_config_with_path(file_path);
         let opts = config.try_into::<Options>().unwrap();
