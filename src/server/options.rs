@@ -3,8 +3,7 @@ use std::path::Path;
 
 #[derive(Serialize, Deserialize)] 
 pub struct Options {
-    /// A path to SuperCollider server.
-    pub bind_to_address: String
+    pub bind_to_address: Option<String>,
     pub block_size: u16,
     pub device_name: Option<String>,
     pub input_streams_enable_string: Option<String>,
@@ -68,7 +67,7 @@ impl Options {
 impl Default for Options {
     fn default() -> Self {
         Options {
-            bind_to_address: "127.0.0.1",
+            bind_to_address: None,
             block_size: 64,
             device_name: None,
             input_streams_enable_string: None,

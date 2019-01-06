@@ -6,7 +6,6 @@ use std::net::{UdpSocket, SocketAddrV4};
 use std::str::FromStr;
 use rosc::OscPacket;
 use sc_client::server::{Server, options::Options};
-use std::io::Read;
 
 fn main() {
     let options = Options::new("settings.toml");

@@ -38,8 +38,11 @@ impl Server {
         self.boot();
     }
 
-    pub fn shutdown(&self) {
-
+    pub fn shutdown(&mut self) {
+        if self.process.is_some() {
+            self.process.as_mut().unwrap().kill().unwrap();
+            self.process = None;
+        }
     }
 }
 
