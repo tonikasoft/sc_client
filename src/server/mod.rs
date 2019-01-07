@@ -1,35 +1,40 @@
 pub mod options;
 use self::options::Options;
-use std::process::{Command, Stdio};
-use std::process::Child;
+use std::process::{Command, Output, Stdio};
+use std::thread;
+use std::thread::JoinHandle;
 
 pub struct Server {
     pub options: Options,
-    pub process: Option<Child>,
+    process_join_handle: Option<JoinHandle<Output>>,
 }
 
 impl Server {
     pub fn new(options: Options) -> Self {
         Server {
             options: options,
-            process: None
+            process_join_handle: None
         }
     }
 
     pub fn boot(&mut self) {
-        if self.process.is_some() {
+        if self.process_join_handle.is_some() {
             return println!("SuperCollider server is already running.");
         }
 
-        self.process = match Command::new(self.options.path.clone())
-            .args(&self.options.to_args())
-            // .stdin(Stdio::piped())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .spawn() {
-                Err(e) => panic!("couldn't spawn {}: {}", self.options.path, e),
-                Ok(process) => Some(process),
-            }
+        let options = self.options.clone();
+
+        self.process_join_handle = Some(thread::spawn(move || {
+            match Command::new(options.path.clone())
+                .args(&options.to_args())
+                // .stdin(Stdio::piped())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
+                .output() {
+                    Err(e) => panic!("couldn't start {}: {}", options.path, e),
+                    Ok(process) => process,
+                }
+        }));
     }
 
     pub fn reboot(&mut self) {
@@ -38,10 +43,12 @@ impl Server {
     }
 
     pub fn shutdown(&mut self) {
-        if self.process.is_some() {
-            self.process.as_mut().unwrap().kill().unwrap();
-            self.process = None;
-        }
+        // TODO use server's `/quit` command
+    }
+
+    pub fn set_options_and_reboot(&mut self, opts: Options) {
+        self.options = opts;
+        self.reboot();
     }
 }
 
