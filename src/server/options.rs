@@ -1,5 +1,6 @@
 use config::{Config, ConfigError, File};
 use std::path::Path;
+use std::convert::From;
 
 #[derive(Serialize, Deserialize)] 
 pub struct Options {
@@ -61,6 +62,48 @@ impl Options {
         Config::try_from::<Options>(&defaults)
             .unwrap()
     }
+
+    pub fn to_args(&self) -> Vec<String> {
+        let result = vec!(
+            vec!(String::from("-z"), self.block_size.to_string()),
+            vec!(String::from("-D"), (self.load_synth_defs as i32).to_string()),
+            vec!(String::from("-w"), self.max_interconnect_buffers.to_string()),
+            vec!(String::from("-l"), self.max_logins.to_string()),
+            vec!(String::from("-n"), self.max_nodes.to_string()),
+            vec!(String::from("-d"), self.max_synth_defs.to_string()),
+            vec!(String::from("-a"), self.num_audio_bus_channels.to_string()),
+            vec!(String::from("-b"), self.num_buffers.to_string()),
+            vec!(String::from("-c"), self.num_control_bus_channels.to_string()),
+            vec!(String::from("-i"), self.num_input_bus_channels.to_string()),
+            vec!(String::from("-o"), self.num_output_bus_channels.to_string()),
+            vec!(String::from("-Z"), self.preferred_hardware_buffer_size.to_string()),
+            vec!(String::from("-S"), self.preferred_sample_rate.to_string()),
+            vec!(String::from("-R"), (self.publish_to_rendezvous as i32).to_string()),
+            vec!(String::from("-r"), self.random_number_generators.to_string()),
+            vec!(String::from("-m"), self.real_time_memory_size.to_string()),
+            vec!(String::from("-t"), self.tcp_port_number.to_string()),
+            vec!(String::from("-u"), self.udp_port_number.to_string()),
+            vec!(String::from("-V"), self.verbosity.to_string()),
+            Options::get_arg_with_value_or_empty_vec("-B", self.bind_to_address.clone()),
+            Options::get_arg_with_value_or_empty_vec("-H", self.device_name.clone()),
+            Options::get_arg_with_value_or_empty_vec("-I", self.input_streams_enable_string.clone()),
+            Options::get_arg_with_value_or_empty_vec("-O", self.output_streams_enable_string.clone()),
+            Options::get_arg_with_value_or_empty_vec("-P", self.restricted_path.clone()),
+            Options::get_arg_with_value_or_empty_vec("-p", self.session_password.clone()),
+            Options::get_arg_with_value_or_empty_vec("-U", self.ugen_plugins_path.clone()),
+            );
+
+        result.into_iter()
+            .flatten()
+            .collect()
+    }
+
+    fn get_arg_with_value_or_empty_vec(arg: &str, value: Option<String>) -> Vec<String> {
+        if value.is_some() {
+            return vec!(String::from(arg), value.unwrap())
+        }
+        vec!()
+    }
 }
 
 impl Default for Options {
@@ -84,7 +127,7 @@ impl Default for Options {
             path: String::from("/Applications/SuperCollider.app/Contents/Resources/scsynth"),
             preferred_hardware_buffer_size: 0,
             preferred_sample_rate: 0,
-            publish_to_rendezvous: true,
+            publish_to_rendezvous: false,
             random_number_generators: 64,
             real_time_memory_size: 8192,
             restricted_path: None,

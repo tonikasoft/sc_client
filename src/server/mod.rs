@@ -22,8 +22,7 @@ impl Server {
         }
 
         self.process = match Command::new(self.options.path.clone())
-            .arg(format!("-t {}", self.options.tcp_port_number))
-            .arg(format!("-u {}", self.options.udp_port_number))
+            .args(&self.options.to_args())
             // .stdin(Stdio::piped())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
