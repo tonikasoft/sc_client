@@ -1,4 +1,7 @@
+# sc_sclient
+
 [![Build Status](https://travis-ci.org/tonikasoft/sc_client.svg?branch=master)](https://travis-ci.org/tonikasoft/sc_client)
+[![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
 Put options inside a configuration file, which you pass to `Options` at initialization.
 The next options are available:
