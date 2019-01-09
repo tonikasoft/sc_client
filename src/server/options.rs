@@ -50,9 +50,43 @@ impl Options {
         let mut config = Config::new();
         let config_file = File::from(Path::new(file_path));
         match config.merge(config_file) {
-            Ok(conf) => conf.to_owned(),
+            Ok(conf) => Options::set_config_defaults(conf).unwrap(),
             Err(e) => Options::on_error_reading_config(e)
         }
+    }
+
+    fn set_config_defaults(config: &mut Config) -> Result<Config, ConfigError> {
+        let defaults = Options::default();
+        Ok(config
+           .set_default("bind_to_address", defaults.bind_to_address)?
+           .set_default("block_size", defaults.block_size as i64)?
+           .set_default("device_name", defaults.device_name)?
+           .set_default("input_streams_enable_string", defaults.input_streams_enable_string)?
+           .set_default("load_synth_defs", defaults.load_synth_defs)?
+           .set_default("max_interconnect_buffers", defaults.max_interconnect_buffers as i64)?
+           .set_default("max_logins", defaults.max_logins as i64)?
+           .set_default("max_nodes", defaults.max_nodes as i64)?
+           .set_default("max_synth_defs", defaults.max_synth_defs as i64)?
+           .set_default("num_audio_bus_channels", defaults.num_audio_bus_channels as i64)?
+           .set_default("num_buffers", defaults.num_buffers as i64)?
+           .set_default("num_control_bus_channels", defaults.num_control_bus_channels as i64)?
+           .set_default("num_input_bus_channels", defaults.num_input_bus_channels as i64)?
+           .set_default("num_output_bus_channels", defaults.num_output_bus_channels as i64)?
+           .set_default("output_streams_enable_string", defaults.output_streams_enable_string)?
+           .set_default("path", defaults.path)?
+           .set_default("preferred_hardware_buffer_size", defaults.preferred_hardware_buffer_size as i64)?
+           .set_default("preferred_sample_rate", defaults.preferred_sample_rate as i64)?
+           .set_default("publish_to_rendezvous", defaults.publish_to_rendezvous)?
+           .set_default("random_number_generators", defaults.random_number_generators as i64)?
+           .set_default("real_time_memory_size", defaults.real_time_memory_size as i64)?
+           .set_default("restricted_path", defaults.restricted_path)?
+           .set_default("session_password", defaults.session_password)?
+           .set_default("tcp_port_number", defaults.tcp_port_number as i64)?
+           .set_default("udp_port_number", defaults.udp_port_number as i64)?
+           .set_default("ugen_plugins_path", defaults.ugen_plugins_path)?
+           .set_default("verbosity", defaults.verbosity as i64)?
+           .to_owned()
+           )
     }
 
     fn on_error_reading_config(e: ConfigError) -> Config {

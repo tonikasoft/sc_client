@@ -22,8 +22,8 @@ impl Server {
             return println!("SuperCollider server is already running.");
         }
 
-        // getting "Incorrect checksum for freed object" error with Arc here,
-        // but simple clone fixes the issue
+        // get "Incorrect checksum for freed object" error when use Arc here,
+        // but simple clone performs fine
         let options = self.options.clone();
 
         self.process_join_handle = Some(thread::spawn(move || {
