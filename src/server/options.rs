@@ -3,8 +3,10 @@ use std::path::Path;
 
 #[derive(Serialize, Deserialize, Clone)] 
 pub struct Options {
-    pub bind_to_address: Option<String>,
+    pub bind_to_address: String,
     pub block_size: u16,
+    pub client_address: String,
+    pub client_port: u16,
     pub device_name: Option<String>,
     pub input_streams_enable_string: Option<String>,
     pub load_synth_defs: bool,
@@ -60,6 +62,8 @@ impl Options {
         Ok(config
            .set_default("bind_to_address", defaults.bind_to_address)?
            .set_default("block_size", defaults.block_size as i64)?
+           .set_default("client_address", defaults.client_address)?
+           .set_default("client_port", defaults.client_port as i64)?
            .set_default("device_name", defaults.device_name)?
            .set_default("input_streams_enable_string", defaults.input_streams_enable_string)?
            .set_default("load_synth_defs", defaults.load_synth_defs)?
@@ -98,13 +102,14 @@ impl Options {
 
     pub fn to_args(&self) -> Vec<String> {
         let result = vec!(
-            Options::get_arg_with_value_or_empty_vec("-B", self.bind_to_address.clone()),
+            // Options::get_arg_with_value_or_empty_vec("-B", self.bind_to_address.clone()),
             Options::get_arg_with_value_or_empty_vec("-H", self.device_name.clone()),
             Options::get_arg_with_value_or_empty_vec("-I", self.input_streams_enable_string.clone()),
             Options::get_arg_with_value_or_empty_vec("-O", self.output_streams_enable_string.clone()),
             Options::get_arg_with_value_or_empty_vec("-P", self.restricted_path.clone()),
             Options::get_arg_with_value_or_empty_vec("-U", self.ugen_plugins_path.clone()),
             Options::get_arg_with_value_or_empty_vec("-p", self.session_password.clone()),
+            vec!(String::from("-B"), self.bind_to_address.clone()),
             vec!(String::from("-D"), (self.load_synth_defs as i32).to_string()),
             vec!(String::from("-R"), (self.publish_to_rendezvous as i32).to_string()),
             vec!(String::from("-S"), self.preferred_sample_rate.to_string()),
@@ -142,8 +147,10 @@ impl Options {
 impl Default for Options {
     fn default() -> Self {
         Options {
-            bind_to_address: None,
+            bind_to_address: String::from("127.0.0.1"),
             block_size: 64,
+            client_address: String::from("127.0.0.1"),
+            client_port: 4243,
             device_name: None,
             input_streams_enable_string: None,
             load_synth_defs: true,
@@ -165,8 +172,8 @@ impl Default for Options {
             real_time_memory_size: 8192,
             restricted_path: None,
             session_password: None,
-            tcp_port_number: 4242,
-            udp_port_number: 0,
+            tcp_port_number: 0,
+            udp_port_number: 4242,
             ugen_plugins_path: None,
             verbosity: 0,
         }

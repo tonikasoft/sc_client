@@ -1,12 +1,7 @@
 extern crate config;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
-pub mod server;
+extern crate rosc;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
+pub mod server;
+pub mod osc_handler;

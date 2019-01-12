@@ -3,17 +3,23 @@ use self::options::Options;
 use std::process::{Command, Output, Stdio};
 use std::thread;
 use std::thread::JoinHandle;
+use rosc::OscMessage;
+use super::osc_handler::OscHandler;
 
 pub struct Server {
     pub options: Options,
     process_join_handle: Option<JoinHandle<Output>>,
+    pub osc_handler: OscHandler,
 }
 
 impl Server {
     pub fn new(options: Options) -> Self {
+        let osc_handler = OscHandler::new(&options);
+
         Server {
             options: options,
-            process_join_handle: None
+            process_join_handle: None,
+            osc_handler: osc_handler,
         }
     }
 
@@ -45,7 +51,15 @@ impl Server {
     }
 
     pub fn shutdown(&mut self) {
-        // TODO use server's `/quit` command
+        self.osc_handler.send_sync(OscMessage {
+            addr: "/quit".to_string(),
+            args: None,
+        });
+
+        if let Some(handle) = self.process_join_handle.take() {
+            handle.join().expect("Failed join SC process thread");
+            self.process_join_handle = None;
+        }
     }
 
     pub fn set_options_and_reboot(&mut self, opts: Options) {
