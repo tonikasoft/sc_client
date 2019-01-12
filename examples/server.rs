@@ -5,7 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 fn main() {
-    let options = Options::new("settings.toml");
+    let options = Options::new("examples/settings.toml");
     let mut server = Server::new(options);
     server.boot();
 
