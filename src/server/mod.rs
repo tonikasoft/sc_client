@@ -51,9 +51,13 @@ impl Server {
     }
 
     pub fn shutdown(&mut self) {
-        self.osc_handler.send_sync(OscMessage {
+        self.osc_handler.send_message(OscMessage {
             addr: "/quit".to_string(),
             args: None,
+        });
+
+        self.osc_handler.add_responder_for_address("/quit", |packet| {
+            println!("quiting")
         });
 
         if let Some(handle) = self.process_join_handle.take() {

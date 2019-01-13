@@ -13,5 +13,5 @@ fn main() {
 
     server.reboot();
 
-    loop{}
+    loop{std::thread::sleep(Duration::from_millis(1))}
 }
