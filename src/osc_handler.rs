@@ -10,7 +10,7 @@ pub struct OscHandler {
     pub client_address: SocketAddrV4,
     pub server_address: SocketAddrV4,
     udp_socket: Arc<UdpSocket>,
-    responders: Arc<HashMap<String, Box<Fn(OscPacket)>>>,
+    responders: Arc<HashMap<String, Box<Fn(OscPacket) + Send + Sync + 'static>>>,
 }
 
 impl OscHandler {
@@ -18,7 +18,7 @@ impl OscHandler {
         let client_address = SocketAddrV4::from_str(&format!("{}:{}", options.client_address, options.client_port)).unwrap();
         let server_address = SocketAddrV4::from_str(&format!("{}:{}", options.bind_to_address, options.udp_port_number)).unwrap();
         let socket = UdpSocket::bind(client_address).unwrap();
-        let responders: HashMap<String, Box<Fn(OscPacket)>> = HashMap::new();
+        let responders: HashMap<String, Box<Fn(OscPacket) + Send + Sync + 'static>> = HashMap::new();
         let osc_handler = OscHandler {
             client_address: client_address,
             server_address: server_address,
@@ -85,7 +85,7 @@ impl OscHandler {
 
     }
 
-    pub fn add_responder_for_address<F: Fn(OscPacket) + 'static>(&mut self, address: &str, callback: F) {
+    pub fn add_responder_for_address<F: Fn(OscPacket) + Send + Sync + 'static>(&mut self, address: &str, callback: F) {
         (*Arc::get_mut(&mut self.responders).unwrap()).insert(String::from(address), Box::new(callback));
     }
 
