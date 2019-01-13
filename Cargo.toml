@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Ales Tsurko <ales.tsurko@gmail.com>"]
 
 [dependencies]
+chashmap = "^2.2.0"
 config = "^0.9"
 rosc = "~0.1"
 serde = "^1.0.0"

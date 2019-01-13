@@ -1,10 +1,11 @@
 pub mod options;
+pub mod osc_handler;
 use self::options::Options;
 use std::process::{Command, Output, Stdio};
 use std::thread;
 use std::thread::JoinHandle;
 use rosc::OscMessage;
-use super::osc_handler::OscHandler;
+use self::osc_handler::OscHandler;
 
 pub struct Server {
     pub options: Options,
@@ -56,13 +57,14 @@ impl Server {
             args: None,
         });
 
-        self.osc_handler.add_responder_for_address("/quit", |packet| {
-            println!("quiting")
+        self.osc_handler.add_responder_for_address("/quit", |_| {
+            println!("Quiting")
         });
 
         if let Some(handle) = self.process_join_handle.take() {
             handle.join().expect("Failed join SC process thread");
             self.process_join_handle = None;
+            self.osc_handler.remove_responder_for_address("/quit");
         }
     }
 
