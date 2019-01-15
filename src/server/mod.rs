@@ -2,7 +2,6 @@ mod options;
 mod osc_handler;
 pub use self::options::Options;
 pub use self::osc_handler::OscHandler;
-use rosc::OscMessage;
 use std::process::{Command, Output, Stdio};
 use std::sync::Arc;
 use std::thread::JoinHandle;
@@ -34,8 +33,11 @@ impl Server {
         }
 
         let options = self.options.clone();
-
-        self.process_join_handle = Some(thread::spawn(move || {
+        self.process_join_handle = Some(self.init_new_sc_process_thread(options));
+    }
+    
+    fn init_new_sc_process_thread(&self, options: Arc<Options>) -> JoinHandle<Output> {
+        thread::spawn(move || {
             match Command::new(options.path.clone())
                 .args(&options.to_args())
                 // .stdin(Stdio::piped())
@@ -45,7 +47,7 @@ impl Server {
                     Err(e) => panic!("couldn't start {}: {}", options.path, e),
                     Ok(process) => process,
                 }
-        }));
+        })
     }
 
     pub fn reboot(&mut self) -> Result<(), ScClientError> {
@@ -54,14 +56,9 @@ impl Server {
     }
 
     pub fn shutdown(&mut self) -> Result<(), ScClientError> {
-        self.osc_handler.send_message(OscMessage {
-            addr: "/quit".to_string(),
-            args: None,
-        })?;
+        self.osc_handler.send_message("/quit", None)?;
 
-        self.osc_handler.add_responder_for_address("/quit", |_| {
-            info!("Quiting")
-        });
+        self.osc_handler.add_responder_for_address("/quit", |_| info!("Quiting"));
 
         if let Some(handle) = self.process_join_handle.take() {
             handle.join()

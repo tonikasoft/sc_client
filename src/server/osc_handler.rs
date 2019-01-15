@@ -116,9 +116,15 @@ impl OscHandler {
         self.responders.remove(&address.to_string());
     }
 
-    pub fn send_message(&self, message: OscMessage) -> Result<(), ScClientError> {
-        let msg_buf: Vec<u8> = encoder::encode(&OscPacket::Message(message)).map_err(|e| ScClientError::OSC(format!("{:?}", e)))?;
-        self.udp_socket.send_to(&msg_buf, self.server_address).map_err(|e| ScClientError::OSC(format!("{}", e)))?;
+    pub fn send_message(&self, address: &str, arguments: Option<Vec<OscType>>) -> Result<(), ScClientError> {
+        let message = OscMessage {
+            addr: address.to_string(),
+            args: arguments,
+        };
+        let msg_buf: Vec<u8> = encoder::encode(&OscPacket::Message(message))
+            .map_err(|e| ScClientError::OSC(format!("{:?}", e)))?;
+        self.udp_socket.send_to(&msg_buf, self.server_address)
+            .map_err(|e| ScClientError::OSC(format!("{}", e)))?;
         Ok(())
     }
 
