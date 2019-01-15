@@ -19,7 +19,7 @@ pub struct OscHandler {
 impl OscHandler {
     pub fn new(options: &Options) -> Self {
         let client_address = SocketAddrV4::from_str(&format!("{}:{}", options.client_address, options.client_port)).unwrap();
-        let server_address = SocketAddrV4::from_str(&format!("{}:{}", options.bind_to_address, options.udp_port_number)).unwrap();
+        let server_address = SocketAddrV4::from_str(&format!("{}:{}", options.address, options.udp_port_number)).unwrap();
         let socket = UdpSocket::bind(client_address).unwrap();
         let responders: RespondersMap = HashMap::new();
         let osc_handler = OscHandler {
