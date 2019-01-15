@@ -6,6 +6,8 @@ authors = ["Ales Tsurko <ales.tsurko@gmail.com>"]
 [dependencies]
 chashmap = "^2.2.0"
 config = "^0.9"
+env_logger = "^0.6.0"
+log = "^0.4"
 rosc = "~0.1"
 serde = "^1.0.0"
 serde_derive = "^1.0.0"

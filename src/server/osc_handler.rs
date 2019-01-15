@@ -1,12 +1,12 @@
 use rosc::{encoder, decoder, OscPacket, OscMessage, OscType};
-use std::net::{ SocketAddrV4, SocketAddr, UdpSocket };
+use std::net::{SocketAddrV4, SocketAddr, UdpSocket};
 use server::options::Options;
 use std::str::FromStr;
 use std::thread;
 use std::sync::Arc;
 use chashmap::CHashMap as HashMap;
 
-pub type Responder = Fn(&OscMessage) + Send + Sync + 'static;
+type Responder = Fn(&OscMessage) + Send + Sync + 'static;
 type RespondersMap = HashMap<String, Box<Responder>>;
 
 pub struct OscHandler {
@@ -15,7 +15,6 @@ pub struct OscHandler {
     udp_socket: Arc<UdpSocket>,
     responders: Arc<RespondersMap>,
 }
-
 
 impl OscHandler {
     pub fn new(options: &Options) -> Self {
@@ -43,7 +42,7 @@ impl OscHandler {
             loop {
                 match socket.recv_from(&mut buf) {
                     Ok((size, addr)) => OscHandler::on_receive_packet(&addr, &buf, size, &server_address, &responders),
-                    Err(e) => println!("Error receiving from socket: {}", e)
+                    Err(e) => error!("Error receiving from socket: {}", e)
                 }
             }
         });
@@ -51,7 +50,7 @@ impl OscHandler {
 
     fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &Arc<RespondersMap>) {
         if *address != SocketAddr::from(*server_address) {
-            return println!("Reject packet from unknow host: {}", address);
+            return warn!("Reject packet from unknow host: {}", address);
         }
 
         let packet = decoder::decode(&buf[..size]).unwrap();
@@ -61,7 +60,7 @@ impl OscHandler {
     fn handle_packet(packet: OscPacket, responders: &Arc<RespondersMap>) {
         match packet {
             OscPacket::Message(msg) => OscHandler::on_message(msg, responders),
-            OscPacket::Bundle(bundle) => println!("OSC Bundle: {:?}", bundle)
+            OscPacket::Bundle(bundle) => debug!("OSC Bundle: {:?}", bundle)
         }
     }
 
@@ -80,13 +79,13 @@ impl OscHandler {
                     OscHandler::call_responder_for_key(&key, message, responders)
                 }
             },
-            None => println!("Got /done message, but without any args")
+            None => debug!("Got /done message, but without any args")
         }
     }
 
     fn call_responder_for_key(key: &str, message: &OscMessage, responders: &Arc<RespondersMap>) {
         if let Some(callback) = responders.get(&key.to_string()) {
-            println!("Calling OSC responder for {}", key);
+            debug!("Calling OSC responder for {}", key);
             callback(message)
         }
     }
@@ -94,13 +93,13 @@ impl OscHandler {
     fn on_fail_message(message: &OscMessage) {
         if let Some(args) = message.args.as_ref() {
             if let OscType::String(addr) = args.clone().remove(0) {
-                print!("Server responses with error:\n\t{}, ", addr);
+                error!("Server responses with error:\n\t{}, ", addr);
             }
             if let OscType::String(error) = args.clone().remove(1) {
                 println!("{}", error);
             }
         } else {
-            println!("Server responses with /fail message");
+            error!("Server responses with /fail message");
         }
     }
 

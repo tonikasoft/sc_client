@@ -1,14 +1,15 @@
-pub mod options;
-pub mod osc_handler;
-use self::options::Options;
-use std::process::{Command, Output, Stdio};
-use std::thread;
-use std::thread::JoinHandle;
+mod options;
+mod osc_handler;
+pub use self::options::Options;
+pub use self::osc_handler::OscHandler;
 use rosc::OscMessage;
-use self::osc_handler::OscHandler;
+use std::process::{Command, Output, Stdio};
+use std::sync::Arc;
+use std::thread::JoinHandle;
+use std::thread;
 
 pub struct Server {
-    pub options: Options,
+    pub options: Arc<Options>,
     process_join_handle: Option<JoinHandle<Output>>,
     pub osc_handler: OscHandler,
 }
@@ -18,7 +19,7 @@ impl Server {
         let osc_handler = OscHandler::new(&options);
 
         Server {
-            options: options,
+            options: Arc::new(options),
             process_join_handle: None,
             osc_handler: osc_handler,
         }
@@ -26,11 +27,9 @@ impl Server {
 
     pub fn boot(&mut self) {
         if self.process_join_handle.is_some() {
-            return println!("SuperCollider server is already running.");
+            return warn!("SuperCollider server is already running.");
         }
 
-        // get "Incorrect checksum for freed object" error when use Arc here,
-        // but simple clone performs fine
         let options = self.options.clone();
 
         self.process_join_handle = Some(thread::spawn(move || {
@@ -58,7 +57,7 @@ impl Server {
         });
 
         self.osc_handler.add_responder_for_address("/quit", |_| {
-            println!("Quiting")
+            info!("Quiting")
         });
 
         if let Some(handle) = self.process_join_handle.take() {
@@ -69,7 +68,7 @@ impl Server {
     }
 
     pub fn set_options_and_reboot(&mut self, opts: Options) {
-        self.options = opts;
+        self.options = Arc::new(opts);
         self.reboot();
     }
 }

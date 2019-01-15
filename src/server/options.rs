@@ -94,7 +94,7 @@ impl Options {
     }
 
     fn on_error_reading_config(e: ConfigError) -> Config {
-        println!("{}.\nUsing default configuration.", e);
+        info!("{}.\nUsing default configuration.", e);
         let defaults = Options::default();
         Config::try_from::<Options>(&defaults)
             .unwrap()
@@ -102,7 +102,6 @@ impl Options {
 
     pub fn to_args(&self) -> Vec<String> {
         let result = vec!(
-            // Options::get_arg_with_value_or_empty_vec("-B", self.bind_to_address.clone()),
             Options::get_arg_with_value_or_empty_vec("-H", self.device_name.clone()),
             Options::get_arg_with_value_or_empty_vec("-I", self.input_streams_enable_string.clone()),
             Options::get_arg_with_value_or_empty_vec("-O", self.output_streams_enable_string.clone()),
