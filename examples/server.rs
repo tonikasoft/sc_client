@@ -5,8 +5,9 @@ use sc_client::server::{Server, Options};
 use std::thread;
 use std::time::Duration;
 use std::env;
+use sc_client::ScClientError;
 
-fn main() {
+fn main() -> Result<(), ScClientError> {
     env::set_var("RUST_LOG", "sc_client=debug");
     env_logger::init();
 
@@ -16,7 +17,7 @@ fn main() {
 
     thread::sleep(Duration::from_secs(5));
 
-    server.reboot();
+    server.reboot()?;
 
     loop{std::thread::sleep(Duration::from_millis(1))}
 }

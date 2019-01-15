@@ -37,8 +37,14 @@ pub struct Options {
 
 impl Options {
     pub fn new(file_path: &str) -> Self {
-        let config = Options::init_config_with_path(file_path);
-        let opts = config.try_into::<Options>().unwrap();
+        let conf: Config;
+        match Options::init_config_with_path(file_path) {
+            Ok(c) => conf = c,
+            Err(e) => conf = Options::on_error_reading_config(e)
+        }
+
+        let opts = conf.try_into::<Options>()
+            .expect("Unable to convert config into Options struct");
         opts.check();
         opts
     }
@@ -49,12 +55,12 @@ impl Options {
         }
     }
 
-    fn init_config_with_path(file_path: &str) -> Config {
+    fn init_config_with_path(file_path: &str) -> Result<Config, ConfigError> {
         let mut config = Config::new();
         let config_file = File::from(Path::new(file_path));
         match config.merge(config_file) {
-            Ok(conf) => Options::set_config_defaults(conf).unwrap(),
-            Err(e) => Options::on_error_reading_config(e)
+            Ok(conf) => Ok(Options::set_config_defaults(conf))?,
+            Err(e) => Err(e)
         }
     }
 
@@ -99,7 +105,7 @@ impl Options {
         info!("{}.\nUsing default configuration.", e);
         let defaults = Options::default();
         Config::try_from::<Options>(&defaults)
-            .unwrap()
+            .expect("Cannot init config from default Options")
     }
 
     pub fn to_args(&self) -> Vec<String> {
@@ -138,8 +144,8 @@ impl Options {
     }
 
     fn get_arg_with_value_or_empty_vec(arg: &str, value: Option<String>) -> Vec<String> {
-        if value.is_some() {
-            return vec!(String::from(arg), value.unwrap())
+        if let Some(val) = value {
+            return vec!(String::from(arg), val)
         }
         vec!()
     }

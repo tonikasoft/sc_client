@@ -1,10 +1,10 @@
 use rosc::{encoder, decoder, OscPacket, OscMessage, OscType};
 use std::net::{SocketAddrV4, SocketAddr, UdpSocket};
-use server::options::Options;
 use std::str::FromStr;
 use std::thread;
 use std::sync::Arc;
 use chashmap::CHashMap as HashMap;
+use super::super::ScClientError;
 
 type Responder = Fn(&OscMessage) + Send + Sync + 'static;
 type RespondersMap = HashMap<String, Box<Responder>>;
@@ -17,14 +17,17 @@ pub struct OscHandler {
 }
 
 impl OscHandler {
-    pub fn new(options: &Options) -> Self {
-        let client_address = SocketAddrV4::from_str(&format!("{}:{}", options.client_address, options.client_port)).unwrap();
-        let server_address = SocketAddrV4::from_str(&format!("{}:{}", options.address, options.udp_port_number)).unwrap();
-        let socket = UdpSocket::bind(client_address).unwrap();
+    pub fn new(client_address: &str, server_address: &str) -> Self {
+        let client_addr = SocketAddrV4::from_str(client_address)
+            .expect(&format!("Error init client SocketAddrV4 from string {}", client_address));
+        let server_addr = SocketAddrV4::from_str(server_address)
+            .expect(&format!("Error init server SocketAddrV4 from string {}", server_address));
+        let socket = UdpSocket::bind(client_address)
+            .expect(&format!("Cannot bind UdpSocket to address: {}", client_address));
         let responders: RespondersMap = HashMap::new();
         let osc_handler = OscHandler {
-            client_address: client_address,
-            server_address: server_address,
+            client_address: client_addr,
+            server_address: server_addr,
             udp_socket: Arc::new(socket),
             responders: Arc::new(responders),
         };
@@ -53,8 +56,10 @@ impl OscHandler {
             return warn!("Reject packet from unknow host: {}", address);
         }
 
-        let packet = decoder::decode(&buf[..size]).unwrap();
-        OscHandler::handle_packet(packet, responders);
+        match decoder::decode(&buf[..size]) {
+            Ok(packet) => OscHandler::handle_packet(packet, responders),
+            Err(e) => error!("cannot decode packet: {:?}", e)
+        }
     }
 
     fn handle_packet(packet: OscPacket, responders: &Arc<RespondersMap>) {
@@ -111,9 +116,10 @@ impl OscHandler {
         self.responders.remove(&address.to_string());
     }
 
-    pub fn send_message(&self, message: OscMessage) {
-        let msg_buf3 = encoder::encode(&OscPacket::Message(message)).unwrap();
-        self.udp_socket.send_to(&msg_buf3, self.server_address).unwrap();
+    pub fn send_message(&self, message: OscMessage) -> Result<(), ScClientError> {
+        let msg_buf: Vec<u8> = encoder::encode(&OscPacket::Message(message)).map_err(|e| ScClientError::OSC(format!("{:?}", e)))?;
+        self.udp_socket.send_to(&msg_buf, self.server_address).map_err(|e| ScClientError::OSC(format!("{}", e)))?;
+        Ok(())
     }
 
 }
