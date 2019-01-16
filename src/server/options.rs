@@ -33,6 +33,7 @@ pub struct Options {
     pub udp_port_number: u16,
     pub ugen_plugins_path: Option<String>,
     pub verbosity: u8,
+    server_type: String,
 }
 
 impl Options {
@@ -59,9 +60,17 @@ impl Options {
         let mut config = Config::new();
         let config_file = File::from(Path::new(file_path));
         match config.merge(config_file) {
-            Ok(conf) => Ok(Options::set_config_defaults(conf))?,
+            Ok(mut conf) => Options::fix_fresh_configs(&mut conf),
             Err(e) => Err(e)
         }
+    }
+
+    fn fix_fresh_configs(config: &mut Config) -> Result<Config, ConfigError> {
+        let path = config.get_str("path")?;
+        let server_type = Options::guess_server_type_by_path(&path);
+        Options::update_configs_default_sr_by_server_type(config, &server_type)?;
+        config.set("server_type", server_type)?;
+        Ok(Options::set_config_defaults(config))?
     }
 
     fn set_config_defaults(config: &mut Config) -> Result<Config, ConfigError> {
@@ -92,6 +101,7 @@ impl Options {
            .set_default("random_number_generators", defaults.random_number_generators as i64)?
            .set_default("real_time_memory_size", defaults.real_time_memory_size as i64)?
            .set_default("restricted_path", defaults.restricted_path)?
+           .set_default("server_type", defaults.server_type)?
            .set_default("session_password", defaults.session_password)?
            .set_default("tcp_port_number", defaults.tcp_port_number as i64)?
            .set_default("udp_port_number", defaults.udp_port_number as i64)?
@@ -109,7 +119,7 @@ impl Options {
     }
 
     pub fn to_args(&self) -> Vec<String> {
-        let result = vec!(
+        let mut result = vec!(
             Options::get_arg_with_value_or_empty_vec("-H", self.device_name.clone()),
             Options::get_arg_with_value_or_empty_vec("-I", self.input_streams_enable_string.clone()),
             Options::get_arg_with_value_or_empty_vec("-O", self.output_streams_enable_string.clone()),
@@ -119,7 +129,6 @@ impl Options {
             vec!(String::from("-D"), (self.load_synth_defs as i32).to_string()),
             vec!(String::from("-R"), (self.publish_to_rendezvous as i32).to_string()),
             vec!(String::from("-S"), self.preferred_sample_rate.to_string()),
-            vec!(String::from("-T"), self.num_of_threads.to_string()),
             vec!(String::from("-V"), self.verbosity.to_string()),
             vec!(String::from("-Z"), self.preferred_hardware_buffer_size.to_string()),
             vec!(String::from("-a"), self.num_audio_bus_channels.to_string()),
@@ -138,6 +147,10 @@ impl Options {
             vec!(String::from("-z"), self.block_size.to_string()),
             );
 
+        if self.server_type == "supernova" {
+            result.push(vec!(String::from("-T"), self.num_of_threads.to_string()));
+        }
+
         result.into_iter()
             .flatten()
             .collect()
@@ -149,10 +162,34 @@ impl Options {
         }
         vec!()
     }
+
+    fn guess_server_type_by_path(path_str: &str) -> String {
+        let path = std::path::Path::new(path_str);
+        if path.ends_with("supernova") {
+            return String::from("supernova");
+        }
+        String::from("scsynth")
+    }
+
+    fn update_configs_default_sr_by_server_type(config: &mut Config, server_type: &str) -> Result<(), ConfigError> {
+        // because of the issue with scsynth (https://github.com/supercollider/supercollider/issues/2488), it's safier to set it 0 for it
+        let sr = {
+            if server_type == "supernova" {
+                44100
+            } else {
+                0
+            }
+        };
+
+        config.set_default("preferred_sample_rate", sr)?;
+        Ok(())
+    }
 }
 
 impl Default for Options {
     fn default() -> Self {
+        let path = String::from("/Applications/SuperCollider.app/Contents/Resources/supernova");
+        let server_type = Options::guess_server_type_by_path(&path);
         Options {
             address: String::from("127.0.0.1"),
             block_size: 64,
@@ -172,9 +209,9 @@ impl Default for Options {
             num_of_threads: 2,
             num_output_bus_channels: 8,
             output_streams_enable_string: None,
-            path: String::from("/Applications/SuperCollider.app/Contents/Resources/supernova"),
+            path: path,
             preferred_hardware_buffer_size: 0,
-            preferred_sample_rate: 44100,
+            preferred_sample_rate: 0,
             publish_to_rendezvous: false,
             random_number_generators: 64,
             real_time_memory_size: 8192,
@@ -184,6 +221,7 @@ impl Default for Options {
             udp_port_number: 4242,
             ugen_plugins_path: None,
             verbosity: 0,
+            server_type: server_type,
         }
     }
 }
