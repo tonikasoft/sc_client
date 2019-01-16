@@ -40,4 +40,4 @@ The next options are available:
 | `verbosity`                      | **Integer**          | `0`                                           | Controls the verbosity of server messages. A value of 0 is normal behaviour. -1 suppresses informational messages. -2 suppresses informational and many error messages, as well as messages from Poll.                                                                                                            |
 
 > **Note**, `scsynth` has an [issue](https://github.com/supercollider/supercollider/issues/2488) whith setting the same sample rate, which was already set.
-> The workaround is to use `supernova` or not to set `preferred_sample_rate` for `scsynth` (or set it to `0`). You can set sample rate on your system's settings level.
+> The workaround is to use `supernova` or not to set `preferred_sample_rate` for `scsynth` (or set it to `0`). Also you can set sample rate on your system's settings level.
