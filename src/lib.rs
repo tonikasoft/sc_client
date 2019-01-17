@@ -50,4 +50,4 @@ extern crate chashmap;
 pub mod server;
 pub mod error;
 pub use error::ScClientError;
-pub use rosc::OscType;
+pub use rosc::{ OscType, OscMessage };

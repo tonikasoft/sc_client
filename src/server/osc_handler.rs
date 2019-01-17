@@ -17,6 +17,7 @@ pub struct OscHandler {
 }
 
 impl OscHandler {
+    //! The addresses are in `ip:port` format.
     pub fn new(client_address: &str, server_address: &str) -> Self {
         let client_addr = SocketAddrV4::from_str(client_address)
             .expect(&format!("Error init client SocketAddrV4 from string {}", client_address));
@@ -108,6 +109,8 @@ impl OscHandler {
         }
     }
 
+    /// Adds callback to perform on getting message to address.
+    /// Callback gets OSCMessage as the parameter.
     pub fn add_responder_for_address<F: Fn(&OscMessage) + Send + Sync + 'static>(&mut self, address: &str, callback: F) {
         self.responders.insert(String::from(address), Box::new(callback));
     }

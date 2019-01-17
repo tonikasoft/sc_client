@@ -173,14 +173,7 @@ impl Options {
 
     fn update_configs_default_sr_by_server_type(config: &mut Config, server_type: &str) -> Result<(), ConfigError> {
         // because of the issue with scsynth (https://github.com/supercollider/supercollider/issues/2488), it's safier to set it 0 for it
-        let sr = {
-            if server_type == "supernova" {
-                44100
-            } else {
-                0
-            }
-        };
-
+        let sr = { if server_type == "supernova" { 44100 } else { 0 } };
         config.set_default("preferred_sample_rate", sr)?;
         Ok(())
     }
