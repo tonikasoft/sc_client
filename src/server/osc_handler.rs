@@ -3,17 +3,18 @@ use std::net::{SocketAddrV4, SocketAddr, UdpSocket};
 use std::str::FromStr;
 use std::thread;
 use std::sync::Arc;
-use chashmap::CHashMap as HashMap;
+use chashmap::CHashMap;
 use super::super::ScClientError;
 
 type Responder = Fn(&OscMessage) + Send + Sync + 'static;
-type RespondersMap = HashMap<String, Box<Responder>>;
+type RespondersMap = CHashMap<String, Box<Responder>>;
 
 pub struct OscHandler {
     pub client_address: SocketAddrV4,
     pub server_address: SocketAddrV4,
     udp_socket: Arc<UdpSocket>,
     responders: Arc<RespondersMap>,
+    sync_states: Arc<CHashMap<u64, bool>>,
 }
 
 impl OscHandler {
@@ -25,12 +26,13 @@ impl OscHandler {
             .expect(&format!("Error init server SocketAddrV4 from string {}", server_address));
         let socket = UdpSocket::bind(client_address)
             .expect(&format!("Cannot bind UdpSocket to address: {}", client_address));
-        let responders: RespondersMap = HashMap::new();
+        let responders: RespondersMap = CHashMap::new();
         let osc_handler = OscHandler {
             client_address: client_addr,
             server_address: server_addr,
             udp_socket: Arc::new(socket),
             responders: Arc::new(responders),
+            sync_states: Arc::new(CHashMap::new()),
         };
         osc_handler.start_listener();
 
@@ -50,6 +52,56 @@ impl OscHandler {
                 }
             }
         });
+    }
+
+    pub fn sync(&mut self, uid: u64) {
+        let responders = self.get_on_sync_responders(uid);
+        self.init_sync_state_for_uid(uid);
+        let mut buf = [0u8; rosc::decoder::MTU];
+        loop {
+            match self.udp_socket.recv_from(&mut buf) {
+                Ok((size, addr)) => {
+                    OscHandler::on_receive_packet(&addr, &buf, size, &self.server_address, &responders);
+                    if self.get_sync_state_for_uid(uid) { break self.remove_sync_state_for_uid(uid); }
+                },
+                Err(e) => error!("Error receiving from socket: {}", e)
+            }
+        }
+    }
+
+    fn get_on_sync_responders(&mut self, uid: u64) -> Arc<RespondersMap> {
+        let responders: Arc<RespondersMap> = Arc::new(CHashMap::new());
+        let sync_states = self.sync_states.clone();
+
+        self.responders.insert(String::from("/synced"), Box::new(move |message| {
+            if let Some(ref args) = message.args {
+                if let OscType::Int(_) = args[0] { 
+                    if let Some(mut state) = sync_states.get_mut(&uid) {
+                        *state = true;
+                    }
+                }
+            }
+        }));
+
+        responders
+    }
+
+    fn init_sync_state_for_uid(&mut self, uid: u64) {
+        self.sync_states.insert(uid, false);
+    }
+
+    fn get_sync_state_for_uid(&mut self, uid: u64) -> bool {
+        match self.sync_states.get(&uid) {
+            Some(state) => state.clone(),
+            None => {
+                warn!("Can't get sync state for uid {}", uid);
+                return false;
+            }
+        } 
+    }
+
+    fn remove_sync_state_for_uid(&mut self, uid: u64) {
+        self.sync_states.remove(&uid);
     }
 
     fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &Arc<RespondersMap>) {
@@ -130,5 +182,6 @@ impl OscHandler {
             .map_err(|e| ScClientError::OSC(format!("{}", e)))?;
         Ok(())
     }
+
 
 }

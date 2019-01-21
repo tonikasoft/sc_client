@@ -15,7 +15,8 @@ fn main() -> Result<(), ScClientError> {
     let mut server = Server::new(options);
     server.boot();
 
-    thread::sleep(Duration::from_secs(5));
+    // thread::sleep(Duration::from_secs(5));
+    server.sync();
 
     server.set_dump_osc_mode(DumpOscMode::PrintParsedAndHex)?;
 

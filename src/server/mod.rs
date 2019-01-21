@@ -173,6 +173,10 @@ impl Server {
             });
             Ok(())
         }
+
+    pub fn sync(&mut self) {
+        self.osc_handler.sync(12);
+    }
 }
 
 #[derive(Debug)]
