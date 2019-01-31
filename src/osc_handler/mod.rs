@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::thread;
 use std::sync::Arc;
 use chashmap::CHashMap;
-use super::super::ScClientError;
+use super::{ScClientError, ScClientResult};
 
 type Responder = Fn(&OscMessage) + Send + Sync + 'static;
 type RespondersMap = CHashMap<String, Box<Responder>>;
@@ -55,28 +55,35 @@ impl OscHandler {
     }
 
     pub fn sync(&mut self, uid: u64) {
-        let responders = self.get_on_sync_responders(uid);
+        self.send_message("/sync", Some(vec!(OscType::Int(uid as i32)))).unwrap();
+        let responders = self.get_on_sync_responders();
         self.init_sync_state_for_uid(uid);
         let mut buf = [0u8; rosc::decoder::MTU];
         loop {
             match self.udp_socket.recv_from(&mut buf) {
                 Ok((size, addr)) => {
+                    if addr != SocketAddr::from(self.server_address) {
+                        return warn!("Reject packet from unknow host: {}", addr);
+                    }
+
                     OscHandler::on_receive_packet(&addr, &buf, size, &self.server_address, &responders);
-                    if self.get_sync_state_for_uid(uid) { break self.remove_sync_state_for_uid(uid); }
+                    if self.get_sync_state_for_uid(uid) { 
+                        break self.remove_sync_state_for_uid(uid);
+                    }
                 },
                 Err(e) => error!("Error receiving from socket: {}", e)
             }
         }
     }
 
-    fn get_on_sync_responders(&mut self, uid: u64) -> Arc<RespondersMap> {
+    fn get_on_sync_responders(&mut self) -> Arc<RespondersMap> {
         let responders: Arc<RespondersMap> = Arc::new(CHashMap::new());
         let sync_states = self.sync_states.clone();
 
-        self.responders.insert(String::from("/synced"), Box::new(move |message| {
+        responders.insert(String::from("/synced"), Box::new(move |message| {
             if let Some(ref args) = message.args {
-                if let OscType::Int(_) = args[0] { 
-                    if let Some(mut state) = sync_states.get_mut(&uid) {
+                if let OscType::Int(uid) = args[0] { 
+                    if let Some(mut state) = sync_states.get_mut(&(uid as u64)) {
                         *state = true;
                     }
                 }
@@ -177,11 +184,12 @@ impl OscHandler {
             args: arguments,
         };
         let msg_buf: Vec<u8> = encoder::encode(&OscPacket::Message(message))
-            .map_err(|e| ScClientError::OSC(format!("{:?}", e)))?;
+            .map_err(|e| ScClientError::new(&format!("{:?}", e)))?;
         self.udp_socket.send_to(&msg_buf, self.server_address)
-            .map_err(|e| ScClientError::OSC(format!("{}", e)))?;
+            .map_err(|e| ScClientError::new(&format!("{}", e)))?;
         Ok(())
     }
 
 
 }
+

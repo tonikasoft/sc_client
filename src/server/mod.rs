@@ -1,18 +1,18 @@
 mod options;
-mod osc_handler;
 pub use self::options::Options;
-pub use self::osc_handler::OscHandler;
 use std::process::{Command, Output, Stdio};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::thread;
 use super::ScClientError;
 use super::OscType;
+use super::OscHandler;
 
 pub struct Server {
     pub options: Arc<Options>,
     process_join_handle: Option<JoinHandle<Output>>,
     pub osc_handler: OscHandler,
+    sync_uid: u64,
 }
 
 impl Server {
@@ -25,6 +25,7 @@ impl Server {
             options: Arc::new(options),
             process_join_handle: None,
             osc_handler: osc_handler,
+            sync_uid: 0,
         }
     }
 
@@ -63,7 +64,7 @@ impl Server {
 
         if let Some(handle) = self.process_join_handle.take() {
             handle.join()
-                .map_err(|e| ScClientError::Server(format!("Failed join SC process thread: {:?}", e)))?;
+                .map_err(|e| ScClientError::new(&format!("Failed join SC process thread: {:?}", e)))?;
             self.process_join_handle = None;
             self.osc_handler.remove_responder_for_address("/quit");
         }
@@ -175,7 +176,8 @@ impl Server {
         }
 
     pub fn sync(&mut self) {
-        self.osc_handler.sync(12);
+        self.sync_uid += 1;
+        self.osc_handler.sync(self.sync_uid);
     }
 }
 
