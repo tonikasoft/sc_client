@@ -11,8 +11,4 @@ log = "^0.4"
 rosc = "~0.1"
 serde = "^1.0.0"
 serde_derive = "^1.0.0"
-tokio = "^0.1"
-futures = "^0.1"
 
-[replace]
-"rand:0.6.5" = { git = "https://github.com/rust-random/rand" }

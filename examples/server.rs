@@ -5,9 +5,9 @@ use sc_client::{Server, Options, DumpOscMode};
 use std::thread;
 use std::time::Duration;
 use std::env;
-use sc_client::ScClientError;
+use sc_client::{ScClientResult, ScClientError};
 
-fn main() -> Result<(), ScClientError> {
+fn main() -> ScClientResult<()> {
     env::set_var("RUST_LOG", "sc_client=debug");
     env_logger::init();
 
@@ -19,19 +19,22 @@ fn main() -> Result<(), ScClientError> {
 
     server.set_dump_osc_mode(DumpOscMode::PrintParsedAndHex)?;
 
-    server.sync();
+    server.sync()?;
+
     server.get_version(|name, major, minor, patch_n, branch, hash| {
         println!("{} version is {}.{}{}-{}-{}", name, major, minor, patch_n, branch, hash);
     })?;
 
-    server.sync();
+    server.sync()?;
 
     server.reboot()?;
 
     thread::sleep(Duration::from_secs(5));
 
     server.set_receive_notifications(true)?;
-    server.sync();
+
+    server.sync()?;
+
     server.get_status(|num_of_ugens, num_of_synths, num_of_groups, num_of_synthdefs, avg_cpu, peak_cpu, nom_sr, sr| {
         println!("Number of unit generators: {}\n\
                  Number of synths: {}\n\

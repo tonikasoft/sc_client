@@ -4,28 +4,24 @@ use std::process::{Command, Output, Stdio};
 use std::sync::Arc;
 use std::thread::JoinHandle;
 use std::thread;
-use super::ScClientError;
-use super::OscType;
-use super::OscHandler;
+use super::{ScClientResult, ScClientError, OscType, OscServer};
 
 pub struct Server {
     pub options: Arc<Options>,
     process_join_handle: Option<JoinHandle<Output>>,
-    pub osc_handler: OscHandler,
-    sync_uid: u64,
+    pub osc_server: OscServer,
 }
 
 impl Server {
     pub fn new(options: Options) -> Self {
         let server_address = format!("{}:{}", options.address, options.udp_port_number);
         let client_address = format!("{}:{}", options.client_address, options.client_port);
-        let osc_handler = OscHandler::new(&client_address, &server_address);
+        let osc_server = OscServer::new(&client_address, &server_address);
 
         Server {
             options: Arc::new(options),
             process_join_handle: None,
-            osc_handler: osc_handler,
-            sync_uid: 0,
+            osc_server: osc_server,
         }
     }
 
@@ -58,15 +54,15 @@ impl Server {
     }
 
     pub fn shutdown(&mut self) -> Result<(), ScClientError> {
-        self.osc_handler.send_message("/quit", None)?;
+        self.osc_server.send_message("/quit", None)?;
 
-        self.osc_handler.add_responder_for_address("/quit", |_| info!("Quiting"));
+        self.osc_server.add_responder_for_address("/quit", |_| info!("Quiting"));
 
         if let Some(handle) = self.process_join_handle.take() {
             handle.join()
                 .map_err(|e| ScClientError::new(&format!("Failed join SC process thread: {:?}", e)))?;
             self.process_join_handle = None;
-            self.osc_handler.remove_responder_for_address("/quit");
+            self.osc_server.remove_responder_for_address("/quit");
         }
 
         Ok(())
@@ -78,8 +74,8 @@ impl Server {
     }
 
     pub fn set_receive_notifications(&mut self, is_receiving: bool) -> Result<(), ScClientError> {
-        self.osc_handler.send_message("/notify", Some(vec!(OscType::Int(is_receiving as i32))))?;
-        self.osc_handler.add_responder_for_address("/notify", move |_| info!("Server notifications set to {}", is_receiving));
+        self.osc_server.send_message("/notify", Some(vec!(OscType::Int(is_receiving as i32))))?;
+        self.osc_server.add_responder_for_address("/notify", move |_| info!("Server notifications set to {}", is_receiving));
         Ok(())
     }
 
@@ -97,8 +93,8 @@ impl Server {
     /// > status won't return, if the server is in dump_osc mode
     pub fn get_status<F>(&mut self, on_reply: F) -> Result<(), ScClientError> 
         where F: Fn(i32, i32, i32, i32, f32, f32, f32, f32) + Send + Sync + 'static {
-            self.osc_handler.send_message("/status", None)?;
-            self.osc_handler.add_responder_for_address("/status.reply", move |message| {
+            self.osc_server.send_message("/status", None)?;
+            self.osc_server.add_responder_for_address("/status.reply", move |message| {
                 if let Some(ref args) = message.args {
                     let mut num_of_ugens: i32 = 0;
                     if let OscType::Int(n) = args[0] { num_of_ugens = n; }
@@ -130,12 +126,12 @@ impl Server {
         }
 
     pub fn set_dump_osc_mode(&mut self, mode: DumpOscMode) -> Result<(), ScClientError> {
-        self.osc_handler.send_message("/dumpOSC", Some(vec!(OscType::Int(mode as i32))))?;
+        self.osc_server.send_message("/dumpOSC", Some(vec!(OscType::Int(mode as i32))))?;
         Ok(())
     }
 
     pub fn clear_message_queue(&mut self) -> Result<(), ScClientError> {
-        self.osc_handler.send_message("/clearSched", None)?;
+        self.osc_server.send_message("/clearSched", None)?;
         Ok(())
     }
 
@@ -149,8 +145,8 @@ impl Server {
     /// - First seven hex digits of the commit hash.
     pub fn get_version<F>(&mut self, on_reply: F) -> Result<(), ScClientError> 
         where F: Fn(String, i32, i32, String, String, String) + Send + Sync + 'static {
-            self.osc_handler.send_message("/version", None)?;
-            self.osc_handler.add_responder_for_address("/version.reply", move |message| {
+            self.osc_server.send_message("/version", None)?;
+            self.osc_server.add_responder_for_address("/version.reply", move |message| {
                 if let Some(ref args) = message.args {
                     let mut program_name = String::new();
                     if let OscType::String(ref v) = args[0] { program_name = v.to_string(); }
@@ -175,9 +171,9 @@ impl Server {
             Ok(())
         }
 
-    pub fn sync(&mut self) {
-        self.sync_uid += 1;
-        self.osc_handler.sync(self.sync_uid);
+    pub fn sync(&mut self) -> ScClientResult<&Self> {
+        let _ = self.osc_server.sync()?;
+        Ok(self)
     }
 }
 

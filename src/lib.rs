@@ -40,7 +40,6 @@
 //! 
 //! > **Note**, `scsynth` has an [issue](https://github.com/supercollider/supercollider/issues/2488) whith setting the same sample rate, which was already set.
 //! > The workaround is to use `supernova` or not to set `preferred_sample_rate` for `scsynth` (or set it to `0`). You can set sample rate on your system's settings level.
-#[macro_use] extern crate futures;
 extern crate config;
 extern crate serde;
 #[macro_use] extern crate serde_derive;
@@ -48,13 +47,11 @@ extern crate rosc;
 extern crate chashmap;
 #[macro_use] extern crate log;
 
-mod osc_handler;
 mod osc_server;
 mod server;
 mod error;
 pub use error::ScClientError;
 pub use rosc::{ OscType, OscMessage };
-pub use osc_handler::OscHandler;
 pub use osc_server::OscServer;
 pub use server::*;
 
