@@ -21,8 +21,14 @@ fn main() -> ScClientResult<()> {
 
     server.sync()?;
 
-    server.get_version(|name, major, minor, patch_n, branch, hash| {
-        println!("{} version is {}.{}{}-{}-{}", name, major, minor, patch_n, branch, hash);
+    server.get_version(|server_version| {
+        println!("{} version is {}.{}{}-{}-{}",
+                 server_version.program_name,
+                 server_version.major_version,
+                 server_version.minor_version, 
+                 server_version.patch_name, 
+                 server_version.git_branch, 
+                 server_version.commit_hash);
     })?;
 
     server.sync()?;
@@ -35,7 +41,7 @@ fn main() -> ScClientResult<()> {
 
     server.sync()?;
 
-    server.get_status(|num_of_ugens, num_of_synths, num_of_groups, num_of_synthdefs, avg_cpu, peak_cpu, nom_sr, sr| {
+    server.get_status(|server_status| {
         println!("Number of unit generators: {}\n\
                  Number of synths: {}\n\
                  Number of groups: {}\n\
@@ -44,7 +50,14 @@ fn main() -> ScClientResult<()> {
                  Peak CPU: {}\n\
                  Nominal sample rate: {}\n\
                  Actual sample rate: {}",
-                 num_of_ugens, num_of_synths, num_of_groups, num_of_synthdefs, avg_cpu, peak_cpu, nom_sr, sr);
+                 server_status.num_of_ugens, 
+                 server_status.num_of_synths,
+                 server_status.num_of_groups, 
+                 server_status.num_of_synthdefs, 
+                 server_status.avg_cpu, 
+                 server_status.peak_cpu, 
+                 server_status.nom_sample_rate, 
+                 server_status.actual_sample_rate);
     })?;
 
     loop{std::thread::sleep(Duration::from_millis(1))}

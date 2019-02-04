@@ -79,50 +79,35 @@ impl Server {
         Ok(())
     }
 
-    /// Get status and performs callback with parameters:
-    ///
-    /// - number of unit generators.
-    /// - number of synths.
-    /// - number of groups.
-    /// - number of loaded synth definitions.
-    /// - average percent CPU usage for signal processing
-    /// - peak percent CPU usage for signal processing
-    /// - nominal sample rate
-    /// - actual sample rate
-    ///
+    /// Get status and performs callback with [`ServerStatus`](server/struct.ServerStatus.html) as the parameter.
     /// > status won't return, if the server is in dump_osc mode
-    pub fn get_status<F>(&mut self, on_reply: F) -> Result<(), ScClientError> 
-        where F: Fn(i32, i32, i32, i32, f32, f32, f32, f32) + Send + Sync + 'static {
+    pub fn get_status<F>(&mut self, on_reply: F) -> ScClientResult<&Self> 
+        where F: Fn(ServerStatus) + Send + Sync + 'static {
             self.osc_server.send_message("/status", None)?;
             self.osc_server.add_responder_for_address("/status.reply", move |message| {
                 if let Some(ref args) = message.args {
-                    let mut num_of_ugens: i32 = 0;
-                    if let OscType::Int(n) = args[0] { num_of_ugens = n; }
-                    let mut num_of_synths: i32 = 0;
-                    if let OscType::Int(n) = args[1] { num_of_synths = n; }
-                    let mut num_of_groups: i32 = 0;
-                    if let OscType::Int(n) = args[2] { num_of_groups = n; }
-                    let mut num_of_synthdefs: i32 = 0;
-                    if let OscType::Int(n) = args[3] { num_of_synthdefs = n; }
-                    let mut avg_cpu: f32 = 0.0;
-                    if let OscType::Float(a) = args[4] { avg_cpu = a; }
-                    let mut peak_cpu: f32 = 0.0;
-                    if let OscType::Float(p) = args[5] { peak_cpu = p; }
-                    let mut nom_sample_rate: f32 = 0.0;
-                    if let OscType::Float(n) = args[6] { nom_sample_rate = n; }
-                    let mut actual_sample_rate: f32 = 0.0;
-                    if let OscType::Float(a) = args[7] { actual_sample_rate = a; }
-                    on_reply(num_of_ugens, 
-                             num_of_synths,
-                             num_of_groups, 
-                             num_of_synthdefs, 
-                             avg_cpu, 
-                             peak_cpu, 
-                             nom_sample_rate, 
-                             actual_sample_rate);
+                    let mut server_status = ServerStatus {
+                        num_of_ugens: 0,
+                        num_of_synths: 0,
+                        num_of_groups: 0,
+                        num_of_synthdefs: 0,
+                        avg_cpu: 0.0,
+                        peak_cpu: 0.0,
+                        nom_sample_rate: 0.0,
+                        actual_sample_rate: 0.0,
+                    };
+                    if let OscType::Int(n) = args[0] { server_status.num_of_ugens = n; }
+                    if let OscType::Int(n) = args[1] { server_status.num_of_synths = n; }
+                    if let OscType::Int(n) = args[2] { server_status.num_of_groups = n; }
+                    if let OscType::Int(n) = args[3] { server_status.num_of_synthdefs = n; }
+                    if let OscType::Float(a) = args[4] { server_status.avg_cpu = a; }
+                    if let OscType::Float(p) = args[5] { server_status.peak_cpu = p; }
+                    if let OscType::Float(n) = args[6] { server_status.nom_sample_rate = n; }
+                    if let OscType::Float(a) = args[7] { server_status.actual_sample_rate = a; }
+                    on_reply(server_status);
                 }
             });
-            Ok(())
+            Ok(self)
         }
 
     pub fn set_dump_osc_mode(&mut self, mode: DumpOscMode) -> Result<(), ScClientError> {
@@ -135,52 +120,79 @@ impl Server {
         Ok(())
     }
 
-    /// Get server version and performs callback with parameters:
-    ///
-    /// - Program name. May be "scsynth" or "supernova".
-    /// - Major version number.
-    /// - Minor version number.
-    /// - Patch version name.
-    /// - Git branch name.
-    /// - First seven hex digits of the commit hash.
+    /// Get server version and performs callback with
+    /// [`ServerVersion`](server/struct.ServerVersion.html) as the parameter.
     pub fn get_version<F>(&mut self, on_reply: F) -> Result<(), ScClientError> 
-        where F: Fn(String, i32, i32, String, String, String) + Send + Sync + 'static {
+        where F: Fn(ServerVersion) + Send + Sync + 'static {
             self.osc_server.send_message("/version", None)?;
             self.osc_server.add_responder_for_address("/version.reply", move |message| {
                 if let Some(ref args) = message.args {
-                    let mut program_name = String::new();
-                    if let OscType::String(ref v) = args[0] { program_name = v.to_string(); }
-                    let mut major_version: i32 = 0;
-                    if let OscType::Int(n) = args[1] { major_version = n; }
-                    let mut minor_version: i32 = 0;
-                    if let OscType::Int(n) = args[2] { minor_version = n; }
-                    let mut patch_name = String::new();
-                    if let OscType::String(ref v) = args[3] { patch_name = v.to_string(); }
-                    let mut git_branch = String::new();
-                    if let OscType::String(ref v) = args[4] { git_branch = v.to_string(); }
-                    let mut commit_hash = String::new();
-                    if let OscType::String(ref v) = args[5] { commit_hash = v.to_string(); }
-                    on_reply(program_name, 
-                             major_version,
-                             minor_version,
-                             patch_name,
-                             git_branch,
-                             commit_hash);
+                    let mut server_version = ServerVersion {
+                        program_name: String::new(),
+                        major_version: 0,
+                        minor_version: 0,
+                        patch_name: String::new(),
+                        git_branch: String::new(),
+                        commit_hash: String::new(),
+                    };
+                    if let OscType::String(ref v) = args[0] { server_version.program_name = v.to_string(); }
+                    if let OscType::Int(n) = args[1] { server_version.major_version = n; }
+                    if let OscType::Int(n) = args[2] { server_version.minor_version = n; }
+                    if let OscType::String(ref v) = args[3] { server_version.patch_name = v.to_string(); }
+                    if let OscType::String(ref v) = args[4] { server_version.git_branch = v.to_string(); }
+                    if let OscType::String(ref v) = args[5] { server_version.commit_hash = v.to_string(); }
+                    on_reply(server_version);
                 }
             });
             Ok(())
         }
 
     pub fn sync(&mut self) -> ScClientResult<&Self> {
-        let _ = self.osc_server.sync()?;
+        self.osc_server.sync()?;
         Ok(self)
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum DumpOscMode {
     Off,
     PrintParsed,
     PrintHex,
     PrintParsedAndHex,
+}
+
+#[derive(Clone, Debug)]
+pub struct ServerStatus {
+    /// - number of unit generators.
+    pub num_of_ugens: i32,
+    /// - number of synths.
+    pub num_of_synths: i32,
+    /// - number of groups.
+    pub num_of_groups: i32,
+    /// - number of loaded synth definitions.
+    pub num_of_synthdefs: i32,
+    /// - average percent CPU usage for signal processing
+    pub avg_cpu: f32,
+    /// - peak percent CPU usage for signal processing
+    pub peak_cpu: f32,
+    /// - nominal sample rate
+    pub nom_sample_rate: f32,
+    /// - actual sample rate
+    pub actual_sample_rate: f32,
+}
+
+#[derive(Clone, Debug)]
+pub struct ServerVersion {
+    /// - Program name. May be "scsynth" or "supernova".
+    pub program_name: String,
+    /// - Major version number.
+    pub major_version: i32,
+    /// - Minor version number.
+    pub minor_version: i32,
+    /// - Patch version name.
+    pub patch_name: String,
+    /// - Git branch name.
+    pub git_branch: String,
+    /// - First seven hex digits of the commit hash.
+    pub commit_hash: String,
 }
