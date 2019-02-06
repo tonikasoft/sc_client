@@ -33,6 +33,11 @@ impl Server {
         let options = self.options.clone();
         self.process_join_handle = Some(self.init_new_sc_process_thread(options));
     }
+
+    pub fn sync(&mut self) -> ScClientResult<&Self> {
+        self.osc_server.sync()?;
+        Ok(self)
+    }
     
     fn init_new_sc_process_thread(&self, options: Arc<Options>) -> JoinHandle<Output> {
         thread::spawn(move || {
@@ -122,7 +127,7 @@ impl Server {
 
     /// Get server version and performs callback with
     /// [`ServerVersion`](server/struct.ServerVersion.html) as the parameter.
-    pub fn get_version<F>(&mut self, on_reply: F) -> Result<(), ScClientError> 
+    pub fn get_version<F>(&mut self, on_reply: F) -> ScClientResult<&Self>
         where F: Fn(ServerVersion) + Send + Sync + 'static {
             self.osc_server.send_message("/version", None)?;
             self.osc_server.add_responder_for_address("/version.reply", move |message| {
@@ -144,13 +149,18 @@ impl Server {
                     on_reply(server_version);
                 }
             });
-            Ok(())
+            Ok(self)
         }
 
-    pub fn sync(&mut self) -> ScClientResult<&Self> {
-        self.osc_server.sync()?;
+    pub fn call_plugin_command(&mut self, command_name: &str, arguments: Option<Vec<OscType>>) -> ScClientResult<&Self> {
+        let mut send_args = vec!(OscType::String(command_name.to_string()));
+        if let Some(mut command_args) = arguments {
+            send_args.append(&mut command_args);
+        };
+        self.osc_server.send_message("/cmd", Some(send_args))?;
         Ok(self)
     }
+
 }
 
 #[derive(Clone, Debug)]

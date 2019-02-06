@@ -44,6 +44,8 @@ impl OscServer {
     }
 
     fn init_sync_responder(&mut self) {
+        // we can't process it in on_message, because we need current thread, which is out 
+        // of the on_message context
         let current_thread = self.current_thread.clone();
         self.responders.insert(String::from("/synced"), Box::new(move |_| {
             current_thread.unpark();
@@ -132,6 +134,10 @@ impl OscServer {
     /// Adds callback to perform on getting message to address.
     /// Callback gets OSCMessage as the parameter.
     pub fn add_responder_for_address<F: Fn(&OscMessage) + Send + Sync + 'static>(&mut self, address: &str, callback: F) {
+        if address == "/synced" {
+            return error!("can't add responder for reserved address");
+        }
+
         self.responders.insert(String::from(address), Box::new(callback));
     }
 
