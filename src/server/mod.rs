@@ -25,20 +25,16 @@ impl Server {
         }
     }
 
-    pub fn boot(&mut self) {
+    pub fn boot(&mut self) -> ScClientResult<&Self> {
         if self.process_join_handle.is_some() {
-            return warn!("SuperCollider server is already running.");
+            return Err(ScClientError::new("SuperCollider server is already running."));
         }
 
         let options = self.options.clone();
         self.process_join_handle = Some(self.init_new_sc_process_thread(options));
-    }
-
-    pub fn sync(&mut self) -> ScClientResult<&Self> {
-        self.osc_server.sync()?;
         Ok(self)
     }
-    
+
     fn init_new_sc_process_thread(&self, options: Arc<Options>) -> JoinHandle<Output> {
         thread::spawn(move || {
             match Command::new(options.path.clone())
@@ -53,12 +49,12 @@ impl Server {
         })
     }
 
-    pub fn reboot(&mut self) -> Result<(), ScClientError> {
+    pub fn reboot(&mut self) -> ScClientResult<&Self> {
         self.shutdown()?;
-        Ok(self.boot())
+        self.boot()
     }
 
-    pub fn shutdown(&mut self) -> Result<(), ScClientError> {
+    pub fn shutdown(&mut self) -> ScClientResult<&Self> {
         self.osc_server.send_message("/quit", None)?;
 
         self.osc_server.add_responder_for_address("/quit", |_| info!("Quiting"));
@@ -70,18 +66,23 @@ impl Server {
             self.osc_server.remove_responder_for_address("/quit");
         }
 
-        Ok(())
+        Ok(self)
     }
 
-    pub fn set_options_and_reboot(&mut self, opts: Options) -> Result<(), ScClientError> {
+    pub fn set_options_and_reboot(&mut self, opts: Options) -> ScClientResult<&Self> {
         self.options = Arc::new(opts);
-        Ok(self.reboot()?)
+        self.reboot()
     }
 
-    pub fn set_receive_notifications(&mut self, is_receiving: bool) -> Result<(), ScClientError> {
+    pub fn sync(&mut self) -> ScClientResult<&Self> {
+        self.osc_server.sync()?;
+        Ok(self)
+    }
+    
+    pub fn set_receive_notifications(&mut self, is_receiving: bool) -> ScClientResult<&Self> {
         self.osc_server.send_message("/notify", Some(vec!(OscType::Int(is_receiving as i32))))?;
         self.osc_server.add_responder_for_address("/notify", move |_| info!("Server notifications set to {}", is_receiving));
-        Ok(())
+        Ok(self)
     }
 
     /// Get status and performs callback with [`ServerStatus`](server/struct.ServerStatus.html) as the parameter.
@@ -115,14 +116,14 @@ impl Server {
             Ok(self)
         }
 
-    pub fn set_dump_osc_mode(&mut self, mode: DumpOscMode) -> Result<(), ScClientError> {
+    pub fn set_dump_osc_mode(&mut self, mode: DumpOscMode) -> ScClientResult<&Self> {
         self.osc_server.send_message("/dumpOSC", Some(vec!(OscType::Int(mode as i32))))?;
-        Ok(())
+        Ok(self)
     }
 
-    pub fn clear_message_queue(&mut self) -> Result<(), ScClientError> {
+    pub fn clear_message_queue(&mut self) -> ScClientResult<&Self> {
         self.osc_server.send_message("/clearSched", None)?;
-        Ok(())
+        Ok(self)
     }
 
     /// Get server version and performs callback with
