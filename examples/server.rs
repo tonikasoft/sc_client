@@ -2,10 +2,8 @@ extern crate sc_client;
 extern crate env_logger;
 
 use sc_client::{Server, Options, DumpOscMode};
-use std::thread;
-use std::time::Duration;
 use std::env;
-use sc_client::{ScClientResult, ScClientError};
+use sc_client::ScClientResult;
 
 fn main() -> ScClientResult<()> {
     env::set_var("RUST_LOG", "sc_client=debug");
@@ -13,9 +11,9 @@ fn main() -> ScClientResult<()> {
 
     let options = Options::new("examples/settings.toml");
     let mut server = Server::new(options);
-    server.boot();
+    server.boot()?;
 
-    thread::sleep(Duration::from_secs(5));
+    server.sync()?;
 
     server.set_dump_osc_mode(DumpOscMode::PrintParsedAndHex)?;
 
@@ -35,7 +33,7 @@ fn main() -> ScClientResult<()> {
 
     server.reboot()?;
 
-    thread::sleep(Duration::from_secs(5));
+    server.sync()?;
 
     server.set_receive_notifications(true)?;
 
@@ -60,5 +58,9 @@ fn main() -> ScClientResult<()> {
                  server_status.actual_sample_rate);
     })?;
 
-    loop{std::thread::sleep(Duration::from_millis(1))}
+    server.sync()?;
+
+    server.shutdown()?;
+
+    Ok(())
 }

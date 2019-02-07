@@ -132,7 +132,7 @@ impl OscServer {
     }
 
     /// Adds callback to perform on getting message to address.
-    /// Callback gets OSCMessage as the parameter.
+    /// Callback gets an OSCMessage as the parameter.
     pub fn add_responder_for_address<F: Fn(&OscMessage) + Send + Sync + 'static>(&mut self, address: &str, callback: F) {
         if address == "/synced" {
             return error!("can't add responder for reserved address");
