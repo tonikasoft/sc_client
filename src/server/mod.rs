@@ -37,12 +37,9 @@ impl Server {
     }
 
     fn guess_server_ready(&mut self) -> ScClientResult<()> {
-        let mut child_out = BufReader::new(self.sc_server.as_mut()
-                                           .expect("can't get SC server's process")
-                                           .stdout.as_mut()
-                                           .expect("can't get SC server's stdout"));
+        let mut child_out = BufReader::new(self.sc_server.as_mut().expect("can't get SC server's process")
+                                           .stdout.as_mut().expect("can't get SC server's stdout"));
         let mut line = String::new();
-
         loop {
             child_out.read_line(&mut line).unwrap();
             print!("{}", line);

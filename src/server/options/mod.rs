@@ -1,3 +1,4 @@
+mod tests;
 use config::{Config, ConfigError, File};
 use std::path::Path;
 
@@ -31,7 +32,7 @@ pub struct Options {
     pub session_password: Option<String>,
     pub tcp_port_number: u16,
     pub udp_port_number: u16,
-    pub ugen_plugins_path: Option<String>,
+    pub ugen_plugins_path: Option<Vec<String>>,
     pub verbosity: u8,
     server_type: String,
 }
@@ -124,7 +125,7 @@ impl Options {
             Options::get_arg_with_value_or_empty_vec("-I", self.input_streams_enable_string.clone()),
             Options::get_arg_with_value_or_empty_vec("-O", self.output_streams_enable_string.clone()),
             Options::get_arg_with_value_or_empty_vec("-P", self.restricted_path.clone()),
-            Options::get_arg_with_value_or_empty_vec("-U", self.ugen_plugins_path.clone()),
+            Options::get_arg_with_value_or_empty_vec("-U", self.get_ugen_plugins_path_as_argument_str()),
             Options::get_arg_with_value_or_empty_vec("-p", self.session_password.clone()),
             vec!(String::from("-D"), (self.load_synth_defs as i32).to_string()),
             vec!(String::from("-R"), (self.publish_to_rendezvous as i32).to_string()),
@@ -176,6 +177,23 @@ impl Options {
         let sr = { if server_type == "supernova" { 44100 } else { 0 } };
         config.set_default("preferred_sample_rate", sr)?;
         Ok(())
+    }
+
+    fn get_ugen_plugins_path_as_argument_str(&self) -> Option<String> {
+        if let Some(ref paths) = self.ugen_plugins_path {
+            if paths.len() < 1 { return None; }
+
+            let mut paths_cl = paths.clone();
+            
+            let mut result = paths_cl.remove(0);
+            for path in paths_cl.into_iter() {
+                result.push_str(":");
+                result.push_str(&path);
+            }
+
+            return Some(result)
+        };
+        None
     }
 }
 
