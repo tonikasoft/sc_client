@@ -1,7 +1,7 @@
 use super::super::{
     OscMessage,
     OscResponder,
-    OscResponderType,
+    ResponseType,
     ScClientResult,
 };
 
@@ -26,8 +26,8 @@ impl OscResponder for NotifyResponder {
         String::from("/notify")
     }
 
-    fn get_responder_type(&self) -> OscResponderType {
-        OscResponderType::Always
+    fn get_response_type(&self) -> ResponseType {
+        ResponseType::Always
     }
 }
 

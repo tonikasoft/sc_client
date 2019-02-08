@@ -43,11 +43,21 @@ impl Server {
             return Err(ScClientError::new("SuperCollider server is already running."));
         }
 
-        let options = self.options.clone();
-        self.sc_server = Some(self.init_new_sc_server(options));
+        self.sc_server = Some(self.init_new_sc_server());
         self.guess_server_ready()?;
 
         Ok(self)
+    }
+
+    fn init_new_sc_server(&self) -> Child {
+        match Command::new(self.options.path.clone())
+            .args(self.options.to_args())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn() {
+                Err(e) => panic!("couldn't start {}: {}", self.options.path, e),
+                Ok(process) => process,
+            }
     }
 
     fn guess_server_ready(&mut self) -> ScClientResult<()> {
@@ -57,23 +67,10 @@ impl Server {
         loop {
             child_out.read_line(&mut line).unwrap();
             print!("{}", line);
-            if line.contains("ready") {
-                return Ok(())
-            }
+            if line.contains("ready") { return Ok(()) }
             line = String::new();
+            std::thread::sleep(std::time::Duration::from_millis(1));
         }
-    }
-
-    fn init_new_sc_server(&self, options: Arc<Options>) -> Child {
-        match Command::new(options.path.clone())
-            .args(&options.to_args())
-            // .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn() {
-                Err(e) => panic!("couldn't start {}: {}", options.path, e),
-                Ok(process) => process,
-            }
     }
 
     pub fn reboot(&mut self) -> ScClientResult<&Self> {
@@ -83,13 +80,18 @@ impl Server {
     }
 
     pub fn shutdown(&mut self) -> ScClientResult<&Self> {
-        let quit_responder = QuitResponder{};
-        let address = quit_responder.get_address();
-        self.osc_server.add_responder(quit_responder)?;
-
-        self.osc_server.send_message("/quit", None)?;
-
         if self.sc_server.is_some() {
+            let quit_responder = QuitResponder{};
+            let address = quit_responder.get_address();
+            self.osc_server.add_responder(quit_responder)?;
+
+            self.osc_server.send_message("/quit", None)?;
+            self.sync()?;
+
+            if let Err(e) = self.sc_server.as_mut().unwrap().kill() {
+                return Err(ScClientError::new(&format!("{}", e)));
+            }
+
             self.osc_server.remove_responder_for_address(&address);
             self.sc_server = None;
         }

@@ -114,8 +114,18 @@ impl OscServer {
     }
 
     fn call_responder_for_key(key: &str, message: &OscMessage, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
-        if let Some(responder) = responders.get(&key.to_string()) {
+        if let Some(ref responder) = responders.get(&key.to_string()) {
             debug!("Calling OSC responder for {}", key);
+
+            //TODO bellow block is blocking
+            //i think it's because of the reference to a value on map
+            //which we try to remove here
+            // if ResponseType::Once == responder.get_response_type() {
+                // match responders.remove(&responder.get_address()) {
+                    // Some(_) => (),
+                    // None => return Err(ScClientError::new(&format!("responder for key {} not found", key)))
+                // }
+            // }
             return responder.callback(message)
         };
         Ok(warn!("responder for key {} not found", key))
@@ -177,8 +187,8 @@ impl OscResponder for SyncResponder {
         Ok(self.thread.unpark())
     }
 
-    fn get_responder_type(&self) -> OscResponderType {
-        OscResponderType::Always
+    fn get_response_type(&self) -> ResponseType {
+        ResponseType::Always
     }
 
     fn get_address(&self) -> String {
@@ -188,11 +198,12 @@ impl OscResponder for SyncResponder {
 
 pub trait OscResponder: Send + Sync + 'static {
     fn callback(&self, &OscMessage) -> ScClientResult<()>;
-    fn get_responder_type(&self) -> OscResponderType;
+    fn get_response_type(&self) -> ResponseType;
     fn get_address(&self) -> String;
 }
 
-pub enum OscResponderType {
+#[derive(PartialEq)]
+pub enum ResponseType {
     Once,
     Always,
 }

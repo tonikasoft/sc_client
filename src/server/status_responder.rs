@@ -1,7 +1,7 @@
 use super::super::{
     OscMessage, 
     OscResponder,
-    OscResponderType,
+    ResponseType,
     OscType, 
     ScClientResult,
     ServerStatus,
@@ -50,7 +50,7 @@ impl<F: Fn(ServerStatus) + Send + Sync + 'static> OscResponder for StatusRespond
         String::from("/status.reply")
     }
 
-    fn get_responder_type(&self) -> OscResponderType {
-        OscResponderType::Always
+    fn get_response_type(&self) -> ResponseType {
+        ResponseType::Always
     }
 }

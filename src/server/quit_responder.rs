@@ -1,7 +1,7 @@
 use super::super::{
     OscMessage,
     OscResponder,
-    OscResponderType,
+    ResponseType,
     ScClientResult,
 };
 
@@ -15,8 +15,8 @@ impl OscResponder for QuitResponder {
         String::from("/quit")
     }
 
-    fn get_responder_type(&self) -> OscResponderType {
-        OscResponderType::Always
+    fn get_response_type(&self) -> ResponseType {
+        ResponseType::Always
     }
 }
 

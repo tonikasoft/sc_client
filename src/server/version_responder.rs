@@ -1,7 +1,7 @@
 use super::super::{
     OscMessage, 
     OscResponder,
-    OscResponderType,
+    ResponseType,
     OscType, 
     ScClientResult,
     ServerVersion,
@@ -46,7 +46,7 @@ impl<F: Fn(ServerVersion) + Send + Sync + 'static> OscResponder for VersionRespo
         String::from("/version.reply")
     }
 
-    fn get_responder_type(&self) -> OscResponderType {
-        OscResponderType::Always
+    fn get_response_type(&self) -> ResponseType {
+        ResponseType::Always
     }
 }
