@@ -125,7 +125,7 @@ impl Options {
             Options::get_arg_with_value_or_empty_vec("-I", self.input_streams_enable_string.clone()),
             Options::get_arg_with_value_or_empty_vec("-O", self.output_streams_enable_string.clone()),
             Options::get_arg_with_value_or_empty_vec("-P", self.restricted_path.clone()),
-            Options::get_arg_with_value_or_empty_vec("-U", self.get_ugen_plugins_path_as_argument_str()),
+            Options::get_arg_with_value_or_empty_vec("-U", self.parse_ugen_plugins_path()),
             Options::get_arg_with_value_or_empty_vec("-p", self.session_password.clone()),
             vec!(String::from("-D"), (self.load_synth_defs as i32).to_string()),
             vec!(String::from("-R"), (self.publish_to_rendezvous as i32).to_string()),
@@ -179,7 +179,7 @@ impl Options {
         Ok(())
     }
 
-    fn get_ugen_plugins_path_as_argument_str(&self) -> Option<String> {
+    fn parse_ugen_plugins_path(&self) -> Option<String> {
         if let Some(ref paths) = self.ugen_plugins_path {
             if paths.len() < 1 { return None; }
 

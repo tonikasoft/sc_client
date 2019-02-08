@@ -1,4 +1,4 @@
-use rosc::{encoder, decoder, OscPacket, OscMessage, OscType};
+use rosc::{encoder, decoder, OscPacket, OscMessage, OscBundle, OscType};
 use std::net::{SocketAddrV4, SocketAddr, UdpSocket};
 use std::str::FromStr;
 use std::thread;
@@ -7,15 +7,13 @@ use chashmap::CHashMap;
 use super::{ScClientError, ScClientResult};
 use std::thread::Thread;
 
-type Responder = Fn(&OscMessage) + Send + Sync + 'static;
-type RespondersMap = CHashMap<String, Box<Responder>>;
+type RespondersMap = CHashMap<String, Box<OscResponder>>;
 
 pub struct OscServer {
     pub client_address: SocketAddrV4,
     pub server_address: SocketAddrV4,
     udp_socket: Arc<UdpSocket>,
     responders: Arc<RespondersMap>,
-    current_thread: Arc<Thread>,
     sync_uid: i32,
 }
 
@@ -34,7 +32,6 @@ impl OscServer {
             server_address: server_addr,
             udp_socket: Arc::new(socket),
             responders: Arc::new(responders),
-            current_thread: Arc::new(thread::current()),
             sync_uid: 0,
         };
         osc_server.init_sync_responder();
@@ -46,10 +43,8 @@ impl OscServer {
     fn init_sync_responder(&mut self) {
         // we can't process it in on_message, because we need current thread, which is out 
         // of the on_message context
-        let current_thread = self.current_thread.clone();
-        self.responders.insert(String::from("/synced"), Box::new(move |_| {
-            current_thread.unpark();
-        }));
+        let sync_responder = SyncResponder::new();
+        self.responders.insert(sync_responder.get_address(), Box::new(sync_responder));
     }
 
     pub fn sync(&mut self) -> ScClientResult<&Self> {
@@ -67,32 +62,33 @@ impl OscServer {
             let mut buf = [0u8; rosc::decoder::MTU];
             loop {
                 match socket.recv_from(&mut buf) {
-                    Ok((size, addr)) => OscServer::on_receive_packet(&addr, &buf, size, &server_address, &responders),
+                    Ok((size, addr)) => OscServer::on_receive_packet(&addr, &buf, size, &server_address, &responders)
+                        .expect("unexpected OSC error"),
                     Err(e) => error!("Error receiving from socket: {}", e)
                 }
             }
         });
     }
 
-    fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &Arc<RespondersMap>) {
+    fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
         if *address != SocketAddr::from(*server_address) {
-            return warn!("Reject packet from unknow host: {}", address);
+            return Ok(warn!("Reject packet from unknow host: {}", address));
         }
 
         match decoder::decode(&buf[..size]) {
             Ok(packet) => OscServer::handle_packet(packet, responders),
-            Err(e) => error!("cannot decode packet: {:?}", e)
+            Err(e) => Err(ScClientError::new(&format!("cannot decode packet: {:?}", e)))
         }
     }
 
-    fn handle_packet(packet: OscPacket, responders: &Arc<RespondersMap>) {
+    fn handle_packet(packet: OscPacket, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
         match packet {
             OscPacket::Message(msg) => OscServer::on_message(msg, responders),
-            OscPacket::Bundle(bundle) => debug!("OSC Bundle: {:?}", bundle)
+            OscPacket::Bundle(bundle) => OscServer::on_bundle(bundle, responders),
         }
     }
 
-    fn on_message(message: OscMessage, responders: &Arc<RespondersMap>) {
+    fn on_message(message: OscMessage, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
         match message.addr.as_ref() {
             "/done" => OscServer::on_done_message(&message, responders),
             "/fail" => OscServer::on_fail_message(&message),
@@ -100,45 +96,52 @@ impl OscServer {
         }
     }
 
-    fn on_done_message(message: &OscMessage, responders: &Arc<RespondersMap>) {
+    fn on_bundle(bundle: OscBundle, _responders: &Arc<RespondersMap>) -> ScClientResult<()> {
+        debug!("OSC Bundle: {:?}", bundle);
+        Ok(())
+    }
+
+    fn on_done_message(message: &OscMessage, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
         match message.args.as_ref() {
             Some(args) => { 
                 if let OscType::String(key) = args.clone().remove(0) {
-                    OscServer::call_responder_for_key(&key, message, responders)
-                }
+                    return OscServer::call_responder_for_key(&key, message, responders);
+                };
+                Ok(())
             },
-            None => debug!("Got /done message, but without any args")
+            None => return Ok(debug!("Got /done message, but without any args"))
         }
     }
 
-    fn call_responder_for_key(key: &str, message: &OscMessage, responders: &Arc<RespondersMap>) {
-        if let Some(callback) = responders.get(&key.to_string()) {
+    fn call_responder_for_key(key: &str, message: &OscMessage, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
+        if let Some(responder) = responders.get(&key.to_string()) {
             debug!("Calling OSC responder for {}", key);
-            callback(message)
-        }
+            return responder.callback(message)
+        };
+        Ok(warn!("responder for key {} not found", key))
     }
 
-    fn on_fail_message(message: &OscMessage) {
+    fn on_fail_message(message: &OscMessage) -> ScClientResult<()> {
         if let Some(args) = message.args.as_ref() {
             if let OscType::String(addr) = args.clone().remove(0) {
                 error!("Server responses with error:\n\t{}, ", addr);
             }
             if let OscType::String(error) = args.clone().remove(1) {
                 println!("{}", error);
-            }
-        } else {
-            error!("Server responses with /fail message");
-        }
+            };
+        };
+        Ok(error!("Server responses with /fail message"))
     }
 
-    /// Adds callback to perform on getting message to address.
-    /// Callback gets an OSCMessage as the parameter.
-    pub fn add_responder_for_address<F: Fn(&OscMessage) + Send + Sync + 'static>(&mut self, address: &str, callback: F) {
+    /// Adds [`OscResponder`](trait.OscResponder.html) to perform on getting message to address.
+    pub fn add_responder<T: OscResponder>(&self, responder: T) -> ScClientResult<()> {
+        let address = responder.get_address();
         if address == "/synced" {
-            return error!("can't add responder for reserved address");
+            return Err(ScClientError::new("can't add responder for reserved address"));
         }
 
-        self.responders.insert(String::from(address), Box::new(callback));
+        self.responders.insert(address, Box::new(responder));
+        Ok(())
     }
 
     pub fn remove_responder_for_address(&mut self, address: &str) {
@@ -157,3 +160,39 @@ impl OscServer {
     }
 }
 
+struct SyncResponder {
+    thread: Thread,
+}
+
+impl SyncResponder {
+    pub fn new() -> Self {
+        SyncResponder {
+            thread: thread::current(),
+        }
+    }
+}
+
+impl OscResponder for SyncResponder {
+    fn callback(&self, _message: &OscMessage) -> ScClientResult<()> {
+        Ok(self.thread.unpark())
+    }
+
+    fn get_responder_type(&self) -> OscResponderType {
+        OscResponderType::Always
+    }
+
+    fn get_address(&self) -> String {
+        String::from("/synced")
+    }
+}
+
+pub trait OscResponder: Send + Sync + 'static {
+    fn callback(&self, &OscMessage) -> ScClientResult<()>;
+    fn get_responder_type(&self) -> OscResponderType;
+    fn get_address(&self) -> String;
+}
+
+pub enum OscResponderType {
+    Once,
+    Always,
+}

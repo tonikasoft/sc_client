@@ -1,14 +1,28 @@
+mod notify_responder;
 mod options;
+mod quit_responder;
+mod status_responder;
+mod version_responder;
 pub use self::options::Options;
+use self::notify_responder::NotifyResponder;
+use self::quit_responder::QuitResponder;
+use self::status_responder::StatusResponder;
+use self::version_responder::VersionResponder;
 use std::process::{Command, Child, Stdio};
 use std::sync::Arc;
-use super::{ScClientResult, ScClientError, OscType, OscServer};
+use super::{
+    OscResponder,
+    OscServer, 
+    OscType, 
+    ScClientError, 
+    ScClientResult,
+};
 use std::io::{BufRead, BufReader};
 
 pub struct Server {
     pub options: Arc<Options>,
-    sc_server: Option<Child>,
     pub osc_server: OscServer,
+    sc_server: Option<Child>,
 }
 
 impl Server {
@@ -69,12 +83,14 @@ impl Server {
     }
 
     pub fn shutdown(&mut self) -> ScClientResult<&Self> {
+        let quit_responder = QuitResponder{};
+        let address = quit_responder.get_address();
+        self.osc_server.add_responder(quit_responder)?;
+
         self.osc_server.send_message("/quit", None)?;
 
-        self.osc_server.add_responder_for_address("/quit", |_| info!("Quiting"));
-
         if self.sc_server.is_some() {
-            self.osc_server.remove_responder_for_address("/quit");
+            self.osc_server.remove_responder_for_address(&address);
             self.sc_server = None;
         }
 
@@ -92,8 +108,9 @@ impl Server {
     }
     
     pub fn set_receive_notifications(&mut self, is_receiving: bool) -> ScClientResult<&Self> {
+        let notify_responder = NotifyResponder::new(is_receiving);
+        self.osc_server.add_responder(notify_responder)?;
         self.osc_server.send_message("/notify", Some(vec!(OscType::Int(is_receiving as i32))))?;
-        self.osc_server.add_responder_for_address("/notify", move |_| info!("Server notifications set to {}", is_receiving));
         Ok(self)
     }
 
@@ -101,30 +118,9 @@ impl Server {
     /// > status won't return, if the server is in dump_osc mode
     pub fn get_status<F>(&mut self, on_reply: F) -> ScClientResult<&Self> 
         where F: Fn(ServerStatus) + Send + Sync + 'static {
+            let status_responder = StatusResponder::new(on_reply);
+            self.osc_server.add_responder(status_responder)?;
             self.osc_server.send_message("/status", None)?;
-            self.osc_server.add_responder_for_address("/status.reply", move |message| {
-                if let Some(ref args) = message.args {
-                    let mut server_status = ServerStatus {
-                        num_of_ugens: 0,
-                        num_of_synths: 0,
-                        num_of_groups: 0,
-                        num_of_synthdefs: 0,
-                        avg_cpu: 0.0,
-                        peak_cpu: 0.0,
-                        nom_sample_rate: 0.0,
-                        actual_sample_rate: 0.0,
-                    };
-                    if let OscType::Int(n) = args[0] { server_status.num_of_ugens = n; }
-                    if let OscType::Int(n) = args[1] { server_status.num_of_synths = n; }
-                    if let OscType::Int(n) = args[2] { server_status.num_of_groups = n; }
-                    if let OscType::Int(n) = args[3] { server_status.num_of_synthdefs = n; }
-                    if let OscType::Float(a) = args[4] { server_status.avg_cpu = a; }
-                    if let OscType::Float(p) = args[5] { server_status.peak_cpu = p; }
-                    if let OscType::Float(n) = args[6] { server_status.nom_sample_rate = n; }
-                    if let OscType::Float(a) = args[7] { server_status.actual_sample_rate = a; }
-                    on_reply(server_status);
-                }
-            });
             Ok(self)
         }
 
@@ -142,26 +138,9 @@ impl Server {
     /// [`ServerVersion`](server/struct.ServerVersion.html) as the parameter.
     pub fn get_version<F>(&mut self, on_reply: F) -> ScClientResult<&Self>
         where F: Fn(ServerVersion) + Send + Sync + 'static {
+            let version_responder = VersionResponder::new(on_reply);
+            self.osc_server.add_responder(version_responder)?;
             self.osc_server.send_message("/version", None)?;
-            self.osc_server.add_responder_for_address("/version.reply", move |message| {
-                if let Some(ref args) = message.args {
-                    let mut server_version = ServerVersion {
-                        program_name: String::new(),
-                        major_version: 0,
-                        minor_version: 0,
-                        patch_name: String::new(),
-                        git_branch: String::new(),
-                        commit_hash: String::new(),
-                    };
-                    if let OscType::String(ref v) = args[0] { server_version.program_name = v.to_string(); }
-                    if let OscType::Int(n) = args[1] { server_version.major_version = n; }
-                    if let OscType::Int(n) = args[2] { server_version.minor_version = n; }
-                    if let OscType::String(ref v) = args[3] { server_version.patch_name = v.to_string(); }
-                    if let OscType::String(ref v) = args[4] { server_version.git_branch = v.to_string(); }
-                    if let OscType::String(ref v) = args[5] { server_version.commit_hash = v.to_string(); }
-                    on_reply(server_version);
-                }
-            });
             Ok(self)
         }
 

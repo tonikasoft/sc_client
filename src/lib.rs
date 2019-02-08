@@ -52,7 +52,7 @@ mod server;
 mod error;
 pub use error::ScClientError;
 pub use rosc::{ OscType, OscMessage };
-pub use osc_server::OscServer;
+pub use osc_server::*;
 pub use server::*;
 
 pub type ScClientResult<T> = Result<T, ScClientError>;
