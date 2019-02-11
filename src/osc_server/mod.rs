@@ -57,12 +57,12 @@ impl OscServer {
     fn start_listener(&self) {
         let socket = self.udp_socket.clone();
         let server_address = self.server_address.clone();
-        let responders = self.responders.clone();
+        let mut responders = self.responders.clone();
         thread::spawn(move || {
             let mut buf = [0u8; rosc::decoder::MTU];
             loop {
                 match socket.recv_from(&mut buf) {
-                    Ok((size, addr)) => OscServer::on_receive_packet(&addr, &buf, size, &server_address, &responders)
+                    Ok((size, addr)) => OscServer::on_receive_packet(&addr, &buf, size, &server_address, &mut responders)
                         .expect("unexpected OSC error"),
                     Err(e) => error!("Error receiving from socket: {}", e)
                 }
@@ -70,7 +70,7 @@ impl OscServer {
         });
     }
 
-    fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
+    fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
         if *address != SocketAddr::from(*server_address) {
             return Ok(warn!("Reject packet from unknow host: {}", address));
         }
@@ -81,14 +81,14 @@ impl OscServer {
         }
     }
 
-    fn handle_packet(packet: OscPacket, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
+    fn handle_packet(packet: OscPacket, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
         match packet {
             OscPacket::Message(msg) => OscServer::on_message(msg, responders),
             OscPacket::Bundle(bundle) => OscServer::on_bundle(bundle, responders),
         }
     }
 
-    fn on_message(message: OscMessage, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
+    fn on_message(message: OscMessage, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
         match message.addr.as_ref() {
             "/done" => OscServer::on_done_message(&message, responders),
             "/fail" => OscServer::on_fail_message(&message),
@@ -96,12 +96,12 @@ impl OscServer {
         }
     }
 
-    fn on_bundle(bundle: OscBundle, _responders: &Arc<RespondersMap>) -> ScClientResult<()> {
+    fn on_bundle(bundle: OscBundle, _responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
         debug!("OSC Bundle: {:?}", bundle);
         Ok(())
     }
 
-    fn on_done_message(message: &OscMessage, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
+    fn on_done_message(message: &OscMessage, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
         match message.args.as_ref() {
             Some(args) => { 
                 if let OscType::String(key) = args.clone().remove(0) {
@@ -113,22 +113,27 @@ impl OscServer {
         }
     }
 
-    fn call_responder_for_key(key: &str, message: &OscMessage, responders: &Arc<RespondersMap>) -> ScClientResult<()> {
-        if let Some(ref responder) = responders.get(&key.to_string()) {
-            debug!("Calling OSC responder for {}", key);
+    fn call_responder_for_key(key: &str, message: &OscMessage, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+        let mut response_type = ResponseType::Always;
 
-            //TODO bellow block is blocking
-            //i think it's because of the reference to a value on map
-            //which we try to remove here
-            // if ResponseType::Once == responder.get_response_type() {
-                // match responders.remove(&responder.get_address()) {
-                    // Some(_) => (),
-                    // None => return Err(ScClientError::new(&format!("responder for key {} not found", key)))
-                // }
-            // }
-            return responder.callback(message)
+        if let Some(responder) = responders.get(&key.to_string()) {
+            debug!("Calling OSC responder for {}", key);
+            response_type = responder.get_response_type();
+            responder.callback(message)?;
         };
-        Ok(warn!("responder for key {} not found", key))
+
+        if response_type == ResponseType::Once {
+            return OscServer::remove_responder_for_key(key, responders);
+        }
+
+        Ok(())
+    }
+
+    fn remove_responder_for_key(key: &str, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+        match responders.remove(&key.to_string()) {
+            Some(_) => Ok(info!("responder for key {} with ResponseType::Once has called", key)),
+            None => Err(ScClientError::new(&format!("responder for key {} not found", key)))
+        }
     }
 
     fn on_fail_message(message: &OscMessage) -> ScClientResult<()> {
