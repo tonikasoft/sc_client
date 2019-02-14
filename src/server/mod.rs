@@ -68,7 +68,7 @@ impl Server {
             child_out.read_line(&mut line).unwrap();
             print!("{}", line);
             if line.contains("ready") { return Ok(()) }
-            line = String::new();
+            line.clear();
             std::thread::sleep(std::time::Duration::from_millis(1));
         }
     }
@@ -88,7 +88,7 @@ impl Server {
             self.osc_server.send_message("/quit", None)?;
             self.sync()?;
 
-            if let Err(e) = self.sc_server.as_mut().unwrap().kill() {
+            if let Err(e) = self.sc_server.as_mut().unwrap().wait() {
                 return Err(ScClientError::new(&format!("{}", e)));
             }
 
@@ -155,6 +155,9 @@ impl Server {
         Ok(self)
     }
 
+    pub fn set_error_mode(&mut self, error_mode: &ScServerErrorMode) -> ScClientResult<&Self> {
+        Ok(self)
+    }
 }
 
 impl Drop for Server {
@@ -172,6 +175,14 @@ pub enum DumpOscMode {
     PrintParsed,
     PrintHex,
     PrintParsedAndHex,
+}
+
+#[derive(Clone, Debug)]
+pub enum ScServerErrorMode {
+    OffUntilNext = 0,
+    On = 1,
+    OffForBundle = -1,
+    OnForBundle = -2,
 }
 
 #[derive(Clone, Debug)]

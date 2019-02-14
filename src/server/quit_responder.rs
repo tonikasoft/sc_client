@@ -8,7 +8,7 @@ use super::super::{
 pub struct QuitResponder;
 impl OscResponder for QuitResponder {
     fn callback(&self, _message: &OscMessage) -> ScClientResult<()> {
-        Ok(info!("Quiting..."))
+        Ok(info!("Quit..."))
     }       
     
     fn get_address(&self) -> String {

@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/tonikasoft/sc_client.svg?branch=master)](https://travis-ci.org/tonikasoft/sc_client)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Join the community on Spectrum](https://withspectrum.github.io/badge/badge.svg)](https://spectrum.chat/tonika/sc-client)
 
 Put options inside a configuration file, which you pass to `Options` at initialization.
 All of the parameters are optional. If a parameter isn't specified, the default value will be used.
