@@ -4,7 +4,7 @@ use std::str::FromStr;
 use std::thread;
 use std::sync::Arc;
 use chashmap::CHashMap;
-use super::{ScClientError, ScClientResult};
+use crate::{ScClientError, ScClientResult};
 use std::thread::Thread;
 
 type RespondersMap = CHashMap<String, Box<OscResponder>>;

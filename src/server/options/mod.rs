@@ -220,7 +220,7 @@ impl Default for Options {
             num_of_threads: 2,
             num_output_bus_channels: 8,
             output_streams_enable_string: None,
-            path: path,
+            path,
             preferred_hardware_buffer_size: 0,
             preferred_sample_rate: 0,
             publish_to_rendezvous: false,
@@ -232,7 +232,7 @@ impl Default for Options {
             udp_port_number: 4242,
             ugen_plugins_path: None,
             verbosity: 0,
-            server_type: server_type,
+            server_type,
         }
     }
 }

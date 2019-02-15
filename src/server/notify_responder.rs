@@ -1,4 +1,4 @@
-use super::super::{
+use crate::{
     OscMessage,
     OscResponder,
     ResponseType,
@@ -11,9 +11,7 @@ pub struct NotifyResponder {
 
 impl NotifyResponder {
     pub fn new(is_receiving: bool) -> Self {
-        NotifyResponder {
-            is_receiving: is_receiving,
-        }
+        NotifyResponder { is_receiving }
     }
 }
 

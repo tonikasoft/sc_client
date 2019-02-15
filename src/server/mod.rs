@@ -10,7 +10,7 @@ use self::status_responder::StatusResponder;
 use self::version_responder::VersionResponder;
 use std::process::{Command, Child, Stdio};
 use std::sync::Arc;
-use super::{
+use crate::{
     OscResponder,
     OscServer, 
     OscType, 

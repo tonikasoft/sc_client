@@ -1,4 +1,4 @@
-use super::super::{
+use crate::{
     OscMessage, 
     OscResponder,
     ResponseType,
@@ -13,9 +13,7 @@ pub struct VersionResponder<F: Fn(ServerVersion) + Send + Sync + 'static> {
 
 impl<F: Fn(ServerVersion) + Send + Sync + 'static> VersionResponder<F> {
     pub fn new(on_reply_callback: F) -> Self {
-        VersionResponder {
-            on_reply_callback: on_reply_callback,
-        }
+        VersionResponder { on_reply_callback }
     }
 }
 
