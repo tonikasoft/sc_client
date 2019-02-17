@@ -29,3 +29,9 @@ impl error::Error for ScClientError {
         None
     }
 }
+
+impl From<std::io::Error> for ScClientError {
+    fn from(error: std::io::Error) -> Self {
+        ScClientError::new(&format!("{}", error))
+    }
+}

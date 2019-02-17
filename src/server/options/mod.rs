@@ -201,6 +201,7 @@ impl Default for Options {
     fn default() -> Self {
         let path = String::from("/Applications/SuperCollider.app/Contents/Resources/supernova");
         let server_type = Options::guess_server_type_by_path(&path);
+        let preferred_sample_rate: u64 = if server_type == "supernova" { 44100 } else { 0 };
         Options {
             address: String::from("127.0.0.1"),
             block_size: 64,
@@ -222,7 +223,7 @@ impl Default for Options {
             output_streams_enable_string: None,
             path,
             preferred_hardware_buffer_size: 0,
-            preferred_sample_rate: 0,
+            preferred_sample_rate,
             publish_to_rendezvous: false,
             random_number_generators: 64,
             real_time_memory_size: 8192,

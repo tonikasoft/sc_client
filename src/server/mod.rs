@@ -3,12 +3,12 @@ mod options;
 mod quit_responder;
 mod status_responder;
 mod version_responder;
+mod sc_server_process;
 pub use self::options::Options;
 use self::notify_responder::NotifyResponder;
 use self::quit_responder::QuitResponder;
 use self::status_responder::StatusResponder;
 use self::version_responder::VersionResponder;
-use std::process::{Command, Child, Stdio};
 use std::sync::Arc;
 use crate::{
     OscResponder,
@@ -17,12 +17,12 @@ use crate::{
     ScClientError, 
     ScClientResult,
 };
-use std::io::{BufRead, BufReader};
+use self::sc_server_process::ScServerProcess;
 
 pub struct Server {
     pub options: Arc<Options>,
     pub osc_server: OscServer,
-    sc_server: Option<Child>,
+    sc_server_process: Option<ScServerProcess>,
 }
 
 impl Server {
@@ -33,44 +33,19 @@ impl Server {
 
         Server {
             options: Arc::new(options),
-            sc_server: None,
+            sc_server_process: None,
             osc_server: osc_server,
         }
     }
 
     pub fn boot(&mut self) -> ScClientResult<&Self> {
-        if self.sc_server.is_some() {
+        if self.sc_server_process.is_some() {
             return Err(ScClientError::new("SuperCollider server is already running."));
         }
 
-        self.sc_server = Some(self.init_new_sc_server());
-        self.guess_server_ready()?;
+        self.sc_server_process = Some(ScServerProcess::new(&self.options)?);
 
         Ok(self)
-    }
-
-    fn init_new_sc_server(&self) -> Child {
-        match Command::new(self.options.path.clone())
-            .args(self.options.to_args())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn() {
-                Err(e) => panic!("couldn't start {}: {}", self.options.path, e),
-                Ok(process) => process,
-            }
-    }
-
-    fn guess_server_ready(&mut self) -> ScClientResult<()> {
-        let mut child_out = BufReader::new(self.sc_server.as_mut().expect("can't get SC server's process")
-                                           .stdout.as_mut().expect("can't get SC server's stdout"));
-        let mut line = String::new();
-        loop {
-            child_out.read_line(&mut line).unwrap();
-            print!("{}", line);
-            if line.contains("ready") { return Ok(()) }
-            line.clear();
-            std::thread::sleep(std::time::Duration::from_millis(1));
-        }
     }
 
     pub fn reboot(&mut self) -> ScClientResult<&Self> {
@@ -80,7 +55,7 @@ impl Server {
     }
 
     pub fn shutdown(&mut self) -> ScClientResult<&Self> {
-        if self.sc_server.is_some() {
+        if self.sc_server_process.is_some() {
             let quit_responder = QuitResponder{};
             let address = quit_responder.get_address();
             self.osc_server.add_responder(quit_responder)?;
@@ -88,12 +63,10 @@ impl Server {
             self.osc_server.send_message("/quit", None)?;
             self.sync()?;
 
-            if let Err(e) = self.sc_server.as_mut().unwrap().wait() {
-                return Err(ScClientError::new(&format!("{}", e)));
-            }
+            self.sc_server_process.as_mut().unwrap().wait_for_finish()?;
 
             self.osc_server.remove_responder_for_address(&address);
-            self.sc_server = None;
+            self.sc_server_process = None;
         }
 
         Ok(self)
@@ -160,10 +133,12 @@ impl Server {
     }
 }
 
+// Drop is implement for Server, because when we try to kill the child process in ScServerProcess
+// in drop, we get an err that the process is already exited
 impl Drop for Server {
     fn drop(&mut self) {
-        if let Some(ref mut process) = self.sc_server {
-            process.kill()
+        if let Some(ref mut process) = self.sc_server_process {
+            process.kill_child()
                 .expect("can't kill SC server");
         };
     }
