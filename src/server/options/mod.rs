@@ -53,7 +53,7 @@ impl Options {
 
     fn check(&self) {
         if self.udp_port_number == 0 && self.tcp_port_number == 0 {
-            panic!("Either TCP or UDP port should be specified in the configuration file")
+            panic!("Either TCP or UDP port should be specified")
         }
     }
 
