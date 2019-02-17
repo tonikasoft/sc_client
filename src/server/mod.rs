@@ -133,8 +133,8 @@ impl Server {
     }
 }
 
-// Drop is implement for Server, because when we try to kill the child process in ScServerProcess
-// in drop, we get an err that the process is already exited
+// Drop is implemented for Server, because when we try to kill the child process in ScServerProcess
+// in drop, we get an error that the process is already exited
 impl Drop for Server {
     fn drop(&mut self) {
         if let Some(ref mut process) = self.sc_server_process {
