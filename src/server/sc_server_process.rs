@@ -1,9 +1,9 @@
 extern crate os_pipe;
-use std::process::{Command, Child, ExitStatus};
-use self::os_pipe::{pipe, PipeReader, PipeWriter};
-use std::thread;
-use std::io::{BufRead, BufReader};
 use crate::*;
+use self::os_pipe::{pipe, PipeReader, PipeWriter};
+use std::io::{BufRead, BufReader};
+use std::process::{Command, Child, ExitStatus};
+use std::thread;
 
 pub struct ScServerProcess {
     child: Child,

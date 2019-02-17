@@ -9,7 +9,6 @@ use self::notify_responder::NotifyResponder;
 use self::quit_responder::QuitResponder;
 use self::status_responder::StatusResponder;
 use self::version_responder::VersionResponder;
-use std::sync::Arc;
 use crate::{
     OscResponder,
     OscServer, 
@@ -20,7 +19,7 @@ use crate::{
 use self::sc_server_process::ScServerProcess;
 
 pub struct Server {
-    pub options: Arc<Options>,
+    pub options: Options,
     pub osc_server: OscServer,
     sc_server_process: Option<ScServerProcess>,
 }
@@ -32,7 +31,7 @@ impl Server {
         let osc_server = OscServer::new(&client_address, &server_address);
 
         Server {
-            options: Arc::new(options),
+            options,
             sc_server_process: None,
             osc_server: osc_server,
         }
@@ -73,7 +72,7 @@ impl Server {
     }
 
     pub fn set_options_and_reboot(&mut self, opts: Options) -> ScClientResult<&Self> {
-        self.options = Arc::new(opts);
+        self.options = opts;
         self.reboot()
     }
 
