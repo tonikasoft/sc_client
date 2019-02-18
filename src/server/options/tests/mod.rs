@@ -1,4 +1,4 @@
-#[allow(unused_imports)] use super::*;
+use super::*;
 
 #[test]
 fn parse_ugen_plugins_path() {

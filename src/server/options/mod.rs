@@ -1,4 +1,4 @@
-mod tests;
+#[cfg(test)] mod tests;
 use config::{Config, ConfigError, File};
 use std::path::Path;
 
