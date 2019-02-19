@@ -42,3 +42,75 @@ The next options are available:
 
 > **Note**, `scsynth` has an [issue](https://github.com/supercollider/supercollider/issues/2488) whith setting the same sample rate, which was already set.
 > The workaround is to use `supernova` or not to set `preferred_sample_rate` for `scsynth` (or set it to `0`). Also you can set sample rate on your system's settings level.
+
+## Readiness Status
+
+* [X] Server
+    * [X] /quit
+    * [X] /notify
+    * [X] /status
+    * [X] /cmd
+    * [X] /dumpOSC
+    * [X] /sync
+    * [X] /clearSched
+    * [X] /error
+    * [X] /version
+* [ ] SynthDefinition
+    * [ ] /d_recv
+    * [ ] /d_load
+    * [ ] /d_loadDir
+    * [ ] /d_free
+* [ ] Node
+    * [ ] /n_free
+    * [ ] /n_run
+    * [ ] /n_set
+    * [ ] /n_setn
+    * [ ] /n_fill
+    * [ ] /n_map
+    * [ ] /n_mapn
+    * [ ] /n_mapa
+    * [ ] /n_mapan
+    * [ ] /n_before
+    * [ ] /n_after
+    * [ ] /n_query
+    * [ ] /n_trace
+    * [ ] /n_order
+* [ ] Synth
+    * [ ] /s_new
+    * [ ] /s_get
+    * [ ] /s_getn
+    * [ ] /s_noid
+* [ ] Group
+    * [ ] /g_new
+    * [ ] /p_new
+    * [ ] /g_head
+    * [ ] /g_tail
+    * [ ] /g_freeAll
+    * [ ] /g_deepFree
+    * [ ] /g_dumpTree
+    * [ ] /g_queryTree
+* [ ] UnitGenerator
+    * [ ] /u_cmd
+* [ ] Buffer
+    * [ ] /b_alloc
+    * [ ] /b_allocRead
+    * [ ] /b_allocReadChannel
+    * [ ] /b_read
+    * [ ] /b_readChannel
+    * [ ] /b_write
+    * [ ] /b_free
+    * [ ] /b_zero
+    * [ ] /b_set
+    * [ ] /b_setn
+    * [ ] /b_fill
+    * [ ] /b_gen
+    * [ ] /b_close
+    * [ ] /b_query
+    * [ ] /b_get
+    * [ ] /b_getn
+* [ ] ControlBus
+    * [ ] /c_set
+    * [ ] /c_setn
+    * [ ] /c_fill
+    * [ ] /c_get
+    * [ ] /c_getn
