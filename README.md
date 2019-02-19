@@ -43,7 +43,7 @@ The next options are available:
 > **Note**, `scsynth` has an [issue](https://github.com/supercollider/supercollider/issues/2488) whith setting the same sample rate, which was already set.
 > The workaround is to use `supernova` or not to set `preferred_sample_rate` for `scsynth` (or set it to `0`). Also you can set sample rate on your system's settings level.
 
-## Readiness Status
+## Status
 
 * [X] Server
     * [X] /quit
