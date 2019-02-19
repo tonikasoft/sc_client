@@ -47,13 +47,15 @@ extern crate rosc;
 extern crate chashmap;
 #[macro_use] extern crate log;
 
+mod error;
 mod osc_server;
 mod server;
-mod error;
+mod synth_definition;
 pub use error::ScClientError;
-pub use rosc::{ OscType, OscMessage };
 pub use osc_server::*;
+pub use rosc::{ OscType, OscMessage };
 pub use server::*;
+pub use synth_definition::*;
 
 pub type ScClientResult<T> = Result<T, ScClientError>;
 
