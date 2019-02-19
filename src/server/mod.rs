@@ -127,7 +127,8 @@ impl Server {
         Ok(self)
     }
 
-    pub fn set_error_mode(&mut self, error_mode: &ScServerErrorMode) -> ScClientResult<&Self> {
+    pub fn set_error_mode(&mut self, error_mode: ScServerErrorMode) -> ScClientResult<&Self> {
+        self.osc_server.send_message("/error", Some(vec!(OscType::Int(error_mode as i32))))?;
         Ok(self)
     }
 }

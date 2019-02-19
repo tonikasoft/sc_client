@@ -1,9 +1,14 @@
 extern crate sc_client;
 extern crate env_logger;
 
-use sc_client::{Server, Options, DumpOscMode};
 use std::env;
-use sc_client::ScClientResult;
+use sc_client::{
+    DumpOscMode,
+    Options, 
+    ScClientResult, 
+    ScServerErrorMode,
+    Server, 
+};
 
 fn main() -> ScClientResult<()> {
     env::set_var("RUST_LOG", "sc_client=debug");
@@ -16,6 +21,10 @@ fn main() -> ScClientResult<()> {
     server.sync()?;
 
     server.set_dump_osc_mode(DumpOscMode::PrintParsedAndHex)?;
+
+    server.sync()?;
+
+    server.set_error_mode(ScServerErrorMode::On)?;
 
     server.sync()?;
 
