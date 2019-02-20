@@ -43,7 +43,7 @@ impl<'a> Synth<'a> {
             OscType::Int(self.target_id)
         );
         send_args.append(&mut args);
-        self.server.osc_server.borrow_mut().send_message("/s_new", Some(send_args))?;
+        self.server.osc_server.borrow().send_message("/s_new", Some(send_args))?;
 
         Ok(())
     }
@@ -72,7 +72,7 @@ impl<'a> Synth<'a> {
         where F: Fn(OscType) + Send + Sync + 'static {
             let responder = ControlValueResponder::new(self.id, param.clone(), on_reply);
             self.server.osc_server.borrow_mut().add_responder(responder)?;
-            self.server.osc_server.borrow_mut().send_message("/s_get", Some(vec!(OscType::Int(self.id), param)))?;
+            self.server.osc_server.borrow().send_message("/s_get", Some(vec!(OscType::Int(self.id), param)))?;
             Ok(self)
         }
 }
