@@ -7,13 +7,13 @@ use chashmap::CHashMap;
 use crate::{ScClientError, ScClientResult};
 use std::thread::Thread;
 
-type RespondersMap = CHashMap<String, Box<OscResponder>>;
+type Responders = CHashMap<String, Box<OscResponder>>;
 
 pub struct OscServer {
     pub client_address: SocketAddrV4,
     pub server_address: SocketAddrV4,
     udp_socket: Arc<UdpSocket>,
-    responders: Arc<RespondersMap>,
+    responders: Arc<Responders>,
     sync_uid: i32,
 }
 
@@ -26,7 +26,7 @@ impl OscServer {
             .expect(&format!("Error init server SocketAddrV4 from string {}", server_address));
         let socket = UdpSocket::bind(client_address)
             .expect(&format!("Cannot bind UdpSocket to address: {}", client_address));
-        let responders: RespondersMap = CHashMap::new();
+        let responders: Responders = CHashMap::new();
         let mut osc_server = OscServer {
             client_address: client_addr,
             server_address: server_addr,
@@ -70,7 +70,7 @@ impl OscServer {
         });
     }
 
-    fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+    fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &mut Arc<Responders>) -> ScClientResult<()> {
         if *address != SocketAddr::from(*server_address) {
             return Ok(warn!("Reject packet from unknow host: {}", address));
         }
@@ -81,14 +81,14 @@ impl OscServer {
         }
     }
 
-    fn handle_packet(packet: OscPacket, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+    fn handle_packet(packet: OscPacket, responders: &mut Arc<Responders>) -> ScClientResult<()> {
         match packet {
             OscPacket::Message(msg) => OscServer::on_message(msg, responders),
             OscPacket::Bundle(bundle) => OscServer::on_bundle(bundle, responders),
         }
     }
 
-    fn on_message(message: OscMessage, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+    fn on_message(message: OscMessage, responders: &mut Arc<Responders>) -> ScClientResult<()> {
         match message.addr.as_ref() {
             "/done" => OscServer::on_done_message(&message, responders),
             "/fail" => OscServer::on_fail_message(&message),
@@ -96,12 +96,12 @@ impl OscServer {
         }
     }
 
-    fn on_bundle(bundle: OscBundle, _responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+    fn on_bundle(bundle: OscBundle, _responders: &mut Arc<Responders>) -> ScClientResult<()> {
         debug!("OSC Bundle: {:?}", bundle);
         Ok(())
     }
 
-    fn on_done_message(message: &OscMessage, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+    fn on_done_message(message: &OscMessage, responders: &mut Arc<Responders>) -> ScClientResult<()> {
         debug!("get /done message: {:?}", message);
         match message.args.as_ref() {
             Some(args) => { 
@@ -114,7 +114,7 @@ impl OscServer {
         }
     }
 
-    fn call_responder_for_key(key: &str, message: &OscMessage, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+    fn call_responder_for_key(key: &str, message: &OscMessage, responders: &mut Arc<Responders>) -> ScClientResult<()> {
         let mut response_type = AfterCallAction::Reschedule;
 
         if let Some(responder) = responders.get(&key.to_string()) {
@@ -130,7 +130,7 @@ impl OscServer {
         Ok(())
     }
 
-    fn remove_responder_for_key(key: &str, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+    fn remove_responder_for_key(key: &str, responders: &mut Arc<Responders>) -> ScClientResult<()> {
         match responders.remove(&key.to_string()) {
             Some(_) => Ok(debug!("responder for key {} with AfterCallAction::None has called", key)),
             None => Err(ScClientError::new(&format!("responder for key {} not found", key)))
