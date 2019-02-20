@@ -27,36 +27,42 @@ fn main() -> ScClientResult<()> {
     server.sync()?;
 
     let path_to_synthdef = "examples/synthdefs/sc_client_test_1.scsyndef";
+    let synth_name = "sc_client_test_1";
+
+    // send buffer
     let mut synthdef_file = File::open(&path_to_synthdef)?;
     let mut buffer = Vec::new();
     synthdef_file.read_to_end(&mut buffer)?;
 
-    // send buffer
     SynthDefinition::send(&server, &buffer)?;
     server.sync()?;
 
-    Synth::new(&server, "sc_client_test_1", &AddAction::Tail, -1)?;
-    std::thread::sleep(std::time::Duration::from_secs(2));
-    SynthDefinition::free(&server, "sc_client_test_1")?;
+    let synth_1 = Synth::new(&server, synth_name, &AddAction::Tail, -1)?;
+    rest(2);
+    SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
 
-    // load from file
+    // load file
     SynthDefinition::load(&server, &path_to_synthdef)?;
     server.sync()?;
 
-    Synth::new(&server, "sc_client_test_1", &AddAction::After, -1)?;
-    std::thread::sleep(std::time::Duration::from_secs(2));
-    SynthDefinition::free(&server, "sc_client_test_1")?;
+    let synth_2 = Synth::new(&server, synth_name, &AddAction::After, synth_1.get_id())?;
+    rest(2);
+    SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
 
     // load directory
     SynthDefinition::load_directory(&server, "examples/synthdefs")?;
     server.sync()?;
 
-    Synth::new(&server, "sc_client_test_1", &AddAction::After, -1)?;
-    std::thread::sleep(std::time::Duration::from_secs(2));
-    SynthDefinition::free(&server, "sc_client_test_1")?;
+    Synth::new(&server, synth_name, &AddAction::After, synth_2.get_id())?;
+    rest(2);
+    SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
 
     Ok(())
+}
+
+fn rest(secs: u64) {
+    std::thread::sleep(std::time::Duration::from_secs(secs));
 }

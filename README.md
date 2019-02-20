@@ -75,7 +75,7 @@ The next options are available:
     * [ ] /n_query
     * [ ] /n_trace
     * [ ] /n_order
-* [.] Synth
+* [ ] Synth
     * [X] /s_new
     * [ ] /s_get
     * [ ] /s_getn

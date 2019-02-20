@@ -1,8 +1,10 @@
+extern crate uid;
 use crate::{
     OscType,
     ScClientResult,
     Server,
 };
+use self::uid::Id;
 
 pub struct Synth {
     name: String,
@@ -22,7 +24,8 @@ impl Synth {
     }
 
     fn init_id() -> i32 {
-        -1
+        let id = Id::<i32>::new();
+        id.get() as i32
     }
 
     fn init_on_server(server: &Server, name: &str, id: i32, add_action: &AddAction, target_id: i32) -> ScClientResult<()> {
