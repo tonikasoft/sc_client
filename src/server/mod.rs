@@ -10,7 +10,6 @@ use self::quit_responder::QuitResponder;
 use self::status_responder::StatusResponder;
 use self::version_responder::VersionResponder;
 use crate::{
-    OscResponder,
     OscServer, 
     OscType, 
     ScClientError, 
@@ -56,7 +55,6 @@ impl Server {
     pub fn shutdown(&mut self) -> ScClientResult<&Self> {
         if self.sc_server_process.is_some() {
             let quit_responder = QuitResponder{};
-            let address = quit_responder.get_address();
             self.osc_server.add_responder(quit_responder)?;
 
             self.osc_server.send_message("/quit", None)?;
@@ -64,7 +62,6 @@ impl Server {
 
             self.sc_server_process.as_mut().unwrap().wait_for_finish()?;
 
-            self.osc_server.remove_responder_for_address(&address);
             self.sc_server_process = None;
         }
 

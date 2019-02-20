@@ -132,7 +132,7 @@ impl OscServer {
 
     fn remove_responder_for_key(key: &str, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
         match responders.remove(&key.to_string()) {
-            Some(_) => Ok(info!("responder for key {} with ResponseType::Once has called", key)),
+            Some(_) => Ok(debug!("responder for key {} with ResponseType::Once has called", key)),
             None => Err(ScClientError::new(&format!("responder for key {} not found", key)))
         }
     }

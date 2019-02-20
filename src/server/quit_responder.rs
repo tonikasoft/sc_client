@@ -16,7 +16,7 @@ impl OscResponder for QuitResponder {
     }
 
     fn get_response_type(&self) -> ResponseType {
-        ResponseType::Always
+        ResponseType::Once
     }
 }
 

@@ -45,6 +45,6 @@ impl<F: Fn(ServerVersion) + Send + Sync + 'static> OscResponder for VersionRespo
     }
 
     fn get_response_type(&self) -> ResponseType {
-        ResponseType::Always
+        ResponseType::Once
     }
 }

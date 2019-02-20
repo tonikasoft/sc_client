@@ -49,6 +49,6 @@ impl<F: Fn(ServerStatus) + Send + Sync + 'static> OscResponder for StatusRespond
     }
 
     fn get_response_type(&self) -> ResponseType {
-        ResponseType::Always
+        ResponseType::Once
     }
 }

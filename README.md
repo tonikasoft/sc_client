@@ -77,7 +77,7 @@ The next options are available:
     * [ ] /n_order
 * [ ] Synth
     * [X] /s_new
-    * [ ] /s_get
+    * [X] /s_get
     * [ ] /s_getn
     * [ ] /s_noid
 * [ ] Group

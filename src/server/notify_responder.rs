@@ -25,7 +25,7 @@ impl OscResponder for NotifyResponder {
     }
 
     fn get_response_type(&self) -> ResponseType {
-        ResponseType::Always
+        ResponseType::Once
     }
 }
 

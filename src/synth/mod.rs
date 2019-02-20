@@ -1,4 +1,5 @@
 extern crate uid;
+mod control_value_responder;
 use crate::{
     OscType,
     ScClientError,
@@ -6,6 +7,7 @@ use crate::{
     Server,
 };
 use self::uid::Id;
+use self::control_value_responder::ControlValueResponder;
 
 pub struct Synth {
     name: String,
@@ -62,6 +64,14 @@ impl Synth {
     pub fn get_target_id(&self) -> i32 {
         self.target_id
     }
+
+    pub fn get_control_value<F>(&self, server: &Server, param: OscType, on_reply: F) -> ScClientResult<&Self> 
+        where F: Fn(OscType) + Send + Sync + 'static {
+            let responder = ControlValueResponder::new(self.id, param.clone(), on_reply);
+            server.osc_server.add_responder(responder)?;
+            server.osc_server.send_message("/s_get", Some(vec!(OscType::Int(self.id), param)))?;
+            Ok(self)
+        }
 }
 
 #[derive(Debug, Clone)]
