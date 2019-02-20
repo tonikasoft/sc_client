@@ -1,7 +1,7 @@
 use crate::{
     OscMessage, 
     OscResponder,
-    ResponseType,
+    AfterCallAction,
     OscType, 
     ScClientResult,
 };
@@ -32,7 +32,13 @@ impl<F: Fn(OscType) + Send + Sync + 'static> OscResponder for ControlValueRespon
         String::from("/n_set")
     }
 
-    fn get_response_type(&self) -> ResponseType {
-        ResponseType::Once
+    fn get_after_call_action(&self, message: &OscMessage) -> AfterCallAction {
+        if let Some(ref args) = message.args {
+            if args[0] == OscType::Int(self.synth_id) && args[1] == self.param {
+                return AfterCallAction::None;
+            }
+        }
+
+        AfterCallAction::Reschedule
     }
 }

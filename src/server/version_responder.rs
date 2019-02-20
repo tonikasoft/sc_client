@@ -1,7 +1,7 @@
 use crate::{
     OscMessage, 
     OscResponder,
-    ResponseType,
+    AfterCallAction,
     OscType, 
     ScClientResult,
     ServerVersion,
@@ -44,7 +44,7 @@ impl<F: Fn(ServerVersion) + Send + Sync + 'static> OscResponder for VersionRespo
         String::from("/version.reply")
     }
 
-    fn get_response_type(&self) -> ResponseType {
-        ResponseType::Once
+    fn get_after_call_action(&self, _message: &OscMessage) -> AfterCallAction {
+        AfterCallAction::None
     }
 }

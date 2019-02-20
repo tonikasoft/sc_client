@@ -115,15 +115,15 @@ impl OscServer {
     }
 
     fn call_responder_for_key(key: &str, message: &OscMessage, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
-        let mut response_type = ResponseType::Always;
+        let mut response_type = AfterCallAction::Reschedule;
 
         if let Some(responder) = responders.get(&key.to_string()) {
             debug!("Calling OSC responder for {}", key);
-            response_type = responder.get_response_type();
+            response_type = responder.get_after_call_action(message);
             responder.callback(message)?;
         };
 
-        if response_type == ResponseType::Once {
+        if response_type == AfterCallAction::None {
             return OscServer::remove_responder_for_key(key, responders);
         }
 
@@ -132,7 +132,7 @@ impl OscServer {
 
     fn remove_responder_for_key(key: &str, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
         match responders.remove(&key.to_string()) {
-            Some(_) => Ok(debug!("responder for key {} with ResponseType::Once has called", key)),
+            Some(_) => Ok(debug!("responder for key {} with AfterCallAction::None has called", key)),
             None => Err(ScClientError::new(&format!("responder for key {} not found", key)))
         }
     }
@@ -193,8 +193,8 @@ impl OscResponder for SyncResponder {
         Ok(self.thread.unpark())
     }
 
-    fn get_response_type(&self) -> ResponseType {
-        ResponseType::Always
+    fn get_after_call_action(&self, _message: &OscMessage) -> AfterCallAction {
+        AfterCallAction::Reschedule
     }
 
     fn get_address(&self) -> String {
@@ -204,12 +204,12 @@ impl OscResponder for SyncResponder {
 
 pub trait OscResponder: Send + Sync + 'static {
     fn callback(&self, &OscMessage) -> ScClientResult<()>;
-    fn get_response_type(&self) -> ResponseType;
+    fn get_after_call_action(&self, &OscMessage) -> AfterCallAction;
     fn get_address(&self) -> String;
 }
 
 #[derive(PartialEq)]
-pub enum ResponseType {
-    Once,
-    Always,
+pub enum AfterCallAction {
+    None,
+    Reschedule,
 }

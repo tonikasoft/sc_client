@@ -1,7 +1,7 @@
 use crate::{
     OscMessage,
     OscResponder,
-    ResponseType,
+    AfterCallAction,
     ScClientResult,
 };
 
@@ -15,8 +15,8 @@ impl OscResponder for QuitResponder {
         String::from("/quit")
     }
 
-    fn get_response_type(&self) -> ResponseType {
-        ResponseType::Once
+    fn get_after_call_action(&self, _message: &OscMessage) -> AfterCallAction {
+        AfterCallAction::None
     }
 }
 
