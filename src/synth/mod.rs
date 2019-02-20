@@ -9,21 +9,24 @@ use crate::{
 use self::uid::Id;
 use self::control_value_responder::ControlValueResponder;
 
-pub struct Synth {
+pub struct Synth<'a> {
     name: String,
     id: i32,
     target_id: i32,
+    server: &'a Server,
 }
 
-impl Synth {
-    pub fn new(server: &Server, name: &str, add_action: &AddAction, target_id: i32, args: Vec<OscType>) -> ScClientResult<Self> {
+impl<'a> Synth<'a> {
+    pub fn new(server: &'a Server, name: &str, add_action: &AddAction, target_id: i32, args: Vec<OscType>) -> ScClientResult<Self> {
         let id = Synth::init_id();
-        Synth::init_on_server(server, name, id, add_action, target_id, args)?;
-        Ok(Synth {
+        let synth = Synth {
             name: name.to_string(),
             id,
             target_id,
-        })
+            server,
+        };
+        synth.init_on_server(add_action, args)?;
+        Ok(synth)
     }
 
     fn init_id() -> i32 {
@@ -31,16 +34,16 @@ impl Synth {
         id.get() as i32
     }
 
-    fn init_on_server(server: &Server, name: &str, id: i32, add_action: &AddAction, target_id: i32, mut args: Vec<OscType>) -> ScClientResult<()> {
+    fn init_on_server(&self, add_action: &AddAction, mut args: Vec<OscType>) -> ScClientResult<()> {
         Synth::check_args(&args)?;
         let mut send_args = vec!(
-            OscType::String(name.to_string()),
-            OscType::Int(id),
+            OscType::String(self.name.clone()),
+            OscType::Int(self.id),
             OscType::Int(add_action.clone() as i32),
-            OscType::Int(target_id)
+            OscType::Int(self.target_id)
         );
         send_args.append(&mut args);
-        server.osc_server.send_message("/s_new", Some(send_args))?;
+        self.server.osc_server.borrow_mut().send_message("/s_new", Some(send_args))?;
 
         Ok(())
     }
@@ -65,11 +68,11 @@ impl Synth {
         self.target_id
     }
 
-    pub fn get_control_value<F>(&self, server: &Server, param: OscType, on_reply: F) -> ScClientResult<&Self> 
+    pub fn get_control_value<F>(&self, param: OscType, on_reply: F) -> ScClientResult<&Self> 
         where F: Fn(OscType) + Send + Sync + 'static {
             let responder = ControlValueResponder::new(self.id, param.clone(), on_reply);
-            server.osc_server.add_responder(responder)?;
-            server.osc_server.send_message("/s_get", Some(vec!(OscType::Int(self.id), param)))?;
+            self.server.osc_server.borrow_mut().add_responder(responder)?;
+            self.server.osc_server.borrow_mut().send_message("/s_get", Some(vec!(OscType::Int(self.id), param)))?;
             Ok(self)
         }
 }

@@ -18,7 +18,7 @@ fn main() -> ScClientResult<()> {
     env_logger::init();
 
     let options = Options::new("examples/settings.toml");
-    let mut server = Server::new(options);
+    let server = Server::new(options);
     server.boot()?;
     server.sync()?;
 
@@ -28,7 +28,9 @@ fn main() -> ScClientResult<()> {
     let path_to_synthdef = "examples/synthdefs/sc_client_test_1.scsyndef";
     let synth_name = "sc_client_test_1";
 
-    SynthDefinition::load(&server, &path_to_synthdef)?;
+    let synthdef = SynthDefinition::new(&server);
+
+    synthdef.load(&path_to_synthdef)?;
     server.sync()?;
 
     Synth::new(&server, synth_name, &AddAction::Tail, -1, vec!())?;
@@ -43,13 +45,13 @@ fn main() -> ScClientResult<()> {
     )?;
     rest(2);
 
-    synth.get_control_value(&server, OscType::String("amp".to_string()), |value| {
+    synth.get_control_value(OscType::String("amp".to_string()), |value| {
         println!("amp value is {:?}", value);
     })?;
 
     server.sync()?;
 
-    SynthDefinition::free(&server, synth_name)?;
+    synthdef.free(synth_name)?;
     server.sync()?;
 
     Ok(())

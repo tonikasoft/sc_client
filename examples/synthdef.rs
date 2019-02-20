@@ -19,7 +19,7 @@ fn main() -> ScClientResult<()> {
     env_logger::init();
 
     let options = Options::new("examples/settings.toml");
-    let mut server = Server::new(options);
+    let server = Server::new(options);
     server.boot()?;
     server.sync()?;
 
@@ -34,31 +34,33 @@ fn main() -> ScClientResult<()> {
     let mut buffer = Vec::new();
     synthdef_file.read_to_end(&mut buffer)?;
 
-    SynthDefinition::send(&server, &buffer)?;
+    let synthdef = SynthDefinition::new(&server);
+    synthdef.send(&buffer)?;
+
     server.sync()?;
 
     Synth::new(&server, synth_name, &AddAction::Tail, -1, vec!())?;
     rest(2);
-    SynthDefinition::free(&server, synth_name)?;
+    synthdef.free(synth_name)?;
     server.sync()?;
 
     // load file
-    SynthDefinition::load(&server, &path_to_synthdef)?;
+    synthdef.load(&path_to_synthdef)?;
     server.sync()?;
 
     Synth::new(&server, synth_name, &AddAction::After, -1, vec!())?;
     rest(2);
 
-    SynthDefinition::free(&server, synth_name)?;
+    synthdef.free(synth_name)?;
     server.sync()?;
 
     // load directory
-    SynthDefinition::load_directory(&server, "examples/synthdefs")?;
+    synthdef.load_directory("examples/synthdefs")?;
     server.sync()?;
 
     Synth::new(&server, synth_name, &AddAction::After, -1, vec!())?;
     rest(2);
-    SynthDefinition::free(&server, synth_name)?;
+    synthdef.free(synth_name)?;
     server.sync()?;
 
     Ok(())

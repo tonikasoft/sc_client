@@ -15,7 +15,7 @@ fn main() -> ScClientResult<()> {
     env_logger::init();
 
     let options = Options::new("examples/settings.toml");
-    let mut server = Server::new(options);
+    let server = Server::new(options);
     server.boot()?;
 
     server.sync()?;

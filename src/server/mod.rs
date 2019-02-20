@@ -16,11 +16,12 @@ use crate::{
     ScClientResult,
 };
 use self::sc_server_process::ScServerProcess;
+use std::cell::RefCell;
 
 pub struct Server {
-    pub options: Options,
-    pub osc_server: OscServer,
-    sc_server_process: Option<ScServerProcess>,
+    pub options: RefCell<Options>,
+    pub osc_server: RefCell<OscServer>,
+    sc_server_process: RefCell<Option<ScServerProcess>>,
 }
 
 impl Server {
@@ -30,102 +31,114 @@ impl Server {
         let osc_server = OscServer::new(&client_address, &server_address);
 
         Server {
-            options,
-            sc_server_process: None,
-            osc_server: osc_server,
+            options: RefCell::new(options),
+            sc_server_process: RefCell::new(None),
+            osc_server: RefCell::new(osc_server),
         }
     }
 
-    pub fn boot(&mut self) -> ScClientResult<&Self> {
-        if self.sc_server_process.is_some() {
+    pub fn boot(&self) -> ScClientResult<&Self> {
+        let mut proc = self.sc_server_process.borrow_mut();
+
+        if proc.is_some() {
             return Err(ScClientError::new("SuperCollider server is already running."));
         }
 
-        self.sc_server_process = Some(ScServerProcess::new(&self.options)?);
+        *proc = Some(ScServerProcess::new(&self.options.borrow())?);
 
         Ok(self)
     }
 
-    pub fn reboot(&mut self) -> ScClientResult<&Self> {
+    pub fn reboot(&self) -> ScClientResult<&Self> {
         self.shutdown()?;
         self.boot()?;
         Ok(self)
     }
 
-    pub fn shutdown(&mut self) -> ScClientResult<&Self> {
-        if self.sc_server_process.is_some() {
+    pub fn shutdown(&self) -> ScClientResult<&Self> {
+        let mut proc = self.sc_server_process.borrow_mut();
+        let osc_server = self.osc_server.borrow();
+        if proc.is_some() {
             let quit_responder = QuitResponder{};
-            self.osc_server.add_responder(quit_responder)?;
+            osc_server.add_responder(quit_responder)?;
 
-            self.osc_server.send_message("/quit", None)?;
+            osc_server.send_message("/quit", None)?;
             self.sync()?;
 
-            self.sc_server_process.as_mut().unwrap().wait_for_finish()?;
+            proc.as_mut().unwrap().wait_for_finish()?;
 
-            self.sc_server_process = None;
+            *proc = None;
         }
 
         Ok(self)
     }
 
-    pub fn set_options_and_reboot(&mut self, opts: Options) -> ScClientResult<&Self> {
-        self.options = opts;
+    pub fn set_options_and_reboot(&self, opts: Options) -> ScClientResult<&Self> {
+        self.options.replace(opts);
         self.reboot()
     }
 
-    pub fn sync(&mut self) -> ScClientResult<&Self> {
-        self.osc_server.sync()?;
+    pub fn sync(&self) -> ScClientResult<&Self> {
+        let mut osc_server = self.osc_server.borrow_mut();
+        osc_server.sync()?;
         Ok(self)
     }
     
-    pub fn set_receive_notifications(&mut self, is_receiving: bool) -> ScClientResult<&Self> {
+    pub fn set_receive_notifications(&self, is_receiving: bool) -> ScClientResult<&Self> {
         let notify_responder = NotifyResponder::new(is_receiving);
-        self.osc_server.add_responder(notify_responder)?;
-        self.osc_server.send_message("/notify", Some(vec!(OscType::Int(is_receiving as i32))))?;
+        let osc_server = self.osc_server.borrow();
+        osc_server.add_responder(notify_responder)?;
+        osc_server.send_message("/notify", Some(vec!(OscType::Int(is_receiving as i32))))?;
         Ok(self)
     }
 
     /// Get status and perform callback with [`ServerStatus`](server/struct.ServerStatus.html) as the parameter.
     /// > status won't return, if the server is in dump_osc mode
-    pub fn get_status<F>(&mut self, on_reply: F) -> ScClientResult<&Self> 
+    pub fn get_status<F>(&self, on_reply: F) -> ScClientResult<&Self> 
         where F: Fn(ServerStatus) + Send + Sync + 'static {
             let status_responder = StatusResponder::new(on_reply);
-            self.osc_server.add_responder(status_responder)?;
-            self.osc_server.send_message("/status", None)?;
+            let osc_server = self.osc_server.borrow();
+            osc_server.add_responder(status_responder)?;
+            osc_server.send_message("/status", None)?;
             Ok(self)
         }
 
-    pub fn set_dump_osc_mode(&mut self, mode: DumpOscMode) -> ScClientResult<&Self> {
-        self.osc_server.send_message("/dumpOSC", Some(vec!(OscType::Int(mode as i32))))?;
+    pub fn set_dump_osc_mode(&self, mode: DumpOscMode) -> ScClientResult<&Self> {
+        let osc_server = self.osc_server.borrow();
+        osc_server.send_message("/dumpOSC", Some(vec!(OscType::Int(mode as i32))))?;
         Ok(self)
     }
 
-    pub fn clear_message_queue(&mut self) -> ScClientResult<&Self> {
-        self.osc_server.send_message("/clearSched", None)?;
+    pub fn clear_message_queue(&self) -> ScClientResult<&Self> {
+        let osc_server = self.osc_server.borrow();
+        osc_server.send_message("/clearSched", None)?;
         Ok(self)
     }
 
     /// Get server version and perform callback with
     /// [`ServerVersion`](server/struct.ServerVersion.html) as the parameter.
-    pub fn get_version<F>(&mut self, on_reply: F) -> ScClientResult<&Self>
+    pub fn get_version<F>(&self, on_reply: F) -> ScClientResult<&Self>
         where F: Fn(ServerVersion) + Send + Sync + 'static {
             let version_responder = VersionResponder::new(on_reply);
-            self.osc_server.add_responder(version_responder)?;
-            self.osc_server.send_message("/version", None)?;
+            let osc_server = self.osc_server.borrow();
+            osc_server.add_responder(version_responder)?;
+            osc_server.send_message("/version", None)?;
             Ok(self)
         }
 
-    pub fn call_plugin_command(&mut self, command_name: &str, arguments: Option<Vec<OscType>>) -> ScClientResult<&Self> {
+    pub fn call_plugin_command(&self, command_name: &str, arguments: Option<Vec<OscType>>) -> ScClientResult<&Self> {
         let mut send_args = vec!(OscType::String(command_name.to_string()));
         if let Some(mut command_args) = arguments {
             send_args.append(&mut command_args);
         };
-        self.osc_server.send_message("/cmd", Some(send_args))?;
+        let osc_server = self.osc_server.borrow();
+        osc_server.send_message("/cmd", Some(send_args))?;
         Ok(self)
     }
 
-    pub fn set_error_mode(&mut self, error_mode: ScServerErrorMode) -> ScClientResult<&Self> {
-        self.osc_server.send_message("/error", Some(vec!(OscType::Int(error_mode as i32))))?;
+    pub fn set_error_mode(&self, error_mode: ScServerErrorMode) -> ScClientResult<&Self> {
+        let osc_server = self.osc_server.borrow();
+        osc_server.send_message("/error", Some(vec!(OscType::Int(error_mode as i32))))?;
         Ok(self)
     }
 }
@@ -134,7 +147,7 @@ impl Server {
 // in drop, we get an error that the process is already exited
 impl Drop for Server {
     fn drop(&mut self) {
-        if let Some(ref mut process) = self.sc_server_process {
+        if let Some(ref mut process) = *self.sc_server_process.borrow_mut() {
             process.kill_child()
                 .expect("can't kill SC server");
         };
