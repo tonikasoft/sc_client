@@ -5,10 +5,12 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 use sc_client::{
+    AddAction,
     DumpOscMode,
     Options, 
     ScClientResult, 
     Server, 
+    Synth,
     SynthDefinition,
 };
 
@@ -21,18 +23,39 @@ fn main() -> ScClientResult<()> {
     server.boot()?;
     server.sync()?;
 
-    server.set_dump_osc_mode(DumpOscMode::PrintParsedAndHex)?;
+    server.set_dump_osc_mode(DumpOscMode::PrintParsed)?;
     server.sync()?;
 
-    let mut synthdef_file = File::open("examples/synthdefs/sc_client_test_1.scsyndef")?;
+    let path_to_synthdef = "examples/synthdefs/sc_client_test_1.scsyndef";
+    let mut synthdef_file = File::open(&path_to_synthdef)?;
     let mut buffer = Vec::new();
     synthdef_file.read_to_end(&mut buffer)?;
 
-    {
-        let synthdef = SynthDefinition::new(&server);
-        synthdef.send(&buffer)?;
-    }
+    // send buffer
+    SynthDefinition::send(&server, &buffer)?;
+    server.sync()?;
 
+    Synth::new(&server, "sc_client_test_1", &AddAction::Tail, -1)?;
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    SynthDefinition::free(&server, "sc_client_test_1")?;
+    server.sync()?;
+
+    // load from file
+    SynthDefinition::load(&server, &path_to_synthdef)?;
+    server.sync()?;
+
+    Synth::new(&server, "sc_client_test_1", &AddAction::After, -1)?;
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    SynthDefinition::free(&server, "sc_client_test_1")?;
+    server.sync()?;
+
+    // load directory
+    SynthDefinition::load_directory(&server, "examples/synthdefs")?;
+    server.sync()?;
+
+    Synth::new(&server, "sc_client_test_1", &AddAction::After, -1)?;
+    std::thread::sleep(std::time::Duration::from_secs(2));
+    SynthDefinition::free(&server, "sc_client_test_1")?;
     server.sync()?;
 
     Ok(())

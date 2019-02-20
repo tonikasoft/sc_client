@@ -55,11 +55,11 @@ The next options are available:
     * [X] /clearSched
     * [X] /error
     * [X] /version
-* [ ] SynthDefinition
-    * [ ] /d_recv
-    * [ ] /d_load
-    * [ ] /d_loadDir
-    * [ ] /d_free
+* [X] SynthDefinition
+    * [X] /d_recv
+    * [X] /d_load
+    * [X] /d_loadDir
+    * [X] /d_free
 * [ ] Node
     * [ ] /n_free
     * [ ] /n_run
@@ -75,8 +75,8 @@ The next options are available:
     * [ ] /n_query
     * [ ] /n_trace
     * [ ] /n_order
-* [ ] Synth
-    * [ ] /s_new
+* [.] Synth
+    * [X] /s_new
     * [ ] /s_get
     * [ ] /s_getn
     * [ ] /s_noid

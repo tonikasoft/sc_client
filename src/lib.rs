@@ -50,11 +50,13 @@ extern crate chashmap;
 mod error;
 mod osc_server;
 mod server;
+mod synth;
 mod synth_definition;
 pub use error::ScClientError;
 pub use osc_server::*;
 pub use rosc::{ OscType, OscMessage };
 pub use server::*;
+pub use synth::*;
 pub use synth_definition::*;
 
 pub type ScClientResult<T> = Result<T, ScClientError>;

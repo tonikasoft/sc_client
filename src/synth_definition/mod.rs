@@ -4,32 +4,26 @@ use crate::{
     Server,
 };
 
-pub struct SynthDefinition<'a> {
-    server: &'a Server,
-}
-
-impl<'a> SynthDefinition<'a> {
-    pub fn new(server: &'a Server) -> Self {
-        SynthDefinition { server }
+pub struct SynthDefinition;
+impl SynthDefinition {
+    pub fn send(server: &Server, buf: &Vec<u8>) -> ScClientResult<()> {
+        server.osc_server.send_message("/d_recv", Some(vec!(OscType::Blob(buf.clone()))))?;
+        Ok(())
     }
 
-    pub fn send(&self, buf: &Vec<u8>) -> ScClientResult<&Self> {
-        self.server.osc_server.send_message("/d_recv", Some(vec!(OscType::Blob(buf.clone()))))?;
-        Ok(self)
+    /// file_path can be a pattern like "synthdefs/perc-*"
+    pub fn load(server: &Server, file_path: &str) -> ScClientResult<()> {
+        server.osc_server.send_message("/d_load", Some(vec!(OscType::String(file_path.to_string()))))?;
+        Ok(())
     }
 
-    pub fn load(&self, file_path: &str) -> ScClientResult<&Self> {
-        self.server.osc_server.send_message("/d_load", Some(vec!(OscType::String(file_path.to_string()))))?;
-        Ok(self)
+    pub fn load_directory(server: &Server, path: &str) -> ScClientResult<()> {
+        server.osc_server.send_message("/d_loadDir", Some(vec!(OscType::String(path.to_string()))))?;
+        Ok(())
     }
 
-    pub fn load_directory(&self, path: &str) -> ScClientResult<&Self> {
-        self.server.osc_server.send_message("/d_loadDir", Some(vec!(OscType::String(path.to_string()))))?;
-        Ok(self)
-    }
-
-    pub fn free(&self, name: &str) -> ScClientResult<&Self> {
-        self.server.osc_server.send_message("/d_free", Some(vec!(OscType::String(name.to_string()))))?;
-        Ok(self)
+    pub fn free(server: &Server, name: &str) -> ScClientResult<()> {
+        server.osc_server.send_message("/d_free", Some(vec!(OscType::String(name.to_string()))))?;
+        Ok(())
     }
 }

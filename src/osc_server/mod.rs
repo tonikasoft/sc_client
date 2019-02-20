@@ -102,6 +102,7 @@ impl OscServer {
     }
 
     fn on_done_message(message: &OscMessage, responders: &mut Arc<RespondersMap>) -> ScClientResult<()> {
+        debug!("get /done message: {:?}", message);
         match message.args.as_ref() {
             Some(args) => { 
                 if let OscType::String(key) = args.clone().remove(0) {
