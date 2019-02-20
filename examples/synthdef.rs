@@ -8,6 +8,7 @@ use sc_client::{
     AddAction,
     DumpOscMode,
     Options, 
+    OscType,
     ScClientResult, 
     Server, 
     Synth,
@@ -37,7 +38,7 @@ fn main() -> ScClientResult<()> {
     SynthDefinition::send(&server, &buffer)?;
     server.sync()?;
 
-    let synth_1 = Synth::new(&server, synth_name, &AddAction::Tail, -1)?;
+    let synth_1 = Synth::new(&server, synth_name, &AddAction::Tail, -1, vec!())?;
     rest(2);
     SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
@@ -46,7 +47,13 @@ fn main() -> ScClientResult<()> {
     SynthDefinition::load(&server, &path_to_synthdef)?;
     server.sync()?;
 
-    let synth_2 = Synth::new(&server, synth_name, &AddAction::After, synth_1.get_id())?;
+    let synth_2 = Synth::new(
+        &server,
+        synth_name,
+        &AddAction::After,
+        synth_1.get_id(),
+        vec!(OscType::String("amp".to_string()), OscType::Float(0.1))
+    )?;
     rest(2);
     SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
@@ -55,7 +62,7 @@ fn main() -> ScClientResult<()> {
     SynthDefinition::load_directory(&server, "examples/synthdefs")?;
     server.sync()?;
 
-    Synth::new(&server, synth_name, &AddAction::After, synth_2.get_id())?;
+    Synth::new(&server, synth_name, &AddAction::After, synth_2.get_id(), vec!())?;
     rest(2);
     SynthDefinition::free(&server, synth_name)?;
     server.sync()?;

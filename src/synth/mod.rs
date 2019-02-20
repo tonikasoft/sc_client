@@ -1,6 +1,7 @@
 extern crate uid;
 use crate::{
     OscType,
+    ScClientError,
     ScClientResult,
     Server,
 };
@@ -13,9 +14,9 @@ pub struct Synth {
 }
 
 impl Synth {
-    pub fn new(server: &Server, name: &str, add_action: &AddAction, target_id: i32) -> ScClientResult<Self> {
+    pub fn new(server: &Server, name: &str, add_action: &AddAction, target_id: i32, args: Vec<OscType>) -> ScClientResult<Self> {
         let id = Synth::init_id();
-        Synth::init_on_server(server, name, id, add_action, target_id)?;
+        Synth::init_on_server(server, name, id, add_action, target_id, args)?;
         Ok(Synth {
             name: name.to_string(),
             id,
@@ -28,16 +29,24 @@ impl Synth {
         id.get() as i32
     }
 
-    fn init_on_server(server: &Server, name: &str, id: i32, add_action: &AddAction, target_id: i32) -> ScClientResult<()> {
-        server.osc_server.send_message(
-            "/s_new", 
-            Some(vec!(
-                    OscType::String(name.to_string()),
-                    OscType::Int(id),
-                    OscType::Int(add_action.clone() as i32),
-                    OscType::Int(target_id))
-            )
-        )?;
+    fn init_on_server(server: &Server, name: &str, id: i32, add_action: &AddAction, target_id: i32, mut args: Vec<OscType>) -> ScClientResult<()> {
+        Synth::check_args(&args)?;
+        let mut send_args = vec!(
+            OscType::String(name.to_string()),
+            OscType::Int(id),
+            OscType::Int(add_action.clone() as i32),
+            OscType::Int(target_id)
+        );
+        send_args.append(&mut args);
+        server.osc_server.send_message("/s_new", Some(send_args))?;
+
+        Ok(())
+    }
+
+    fn check_args(args: &Vec<OscType>) -> ScClientResult<()> {
+        if args.len()%2 != 0 {
+            return Err(ScClientError::new("wrong number of arguments for Synth"));
+        }
 
         Ok(())
     }
