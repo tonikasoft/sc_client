@@ -49,7 +49,7 @@ impl OscServer {
 
     pub fn sync(&mut self) -> ScClientResult<&Self> {
         self.sync_uid += 1;
-        self.send_message("/sync", Some(vec!(OscType::Int(self.sync_uid))))?;
+        self.send_message("/sync", Some(vec![self.sync_uid.into()]))?;
         thread::park();
         Ok(self)
     }

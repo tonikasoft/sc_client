@@ -53,11 +53,9 @@ mod synth;
 mod synth_definition;
 pub use error::ScClientError;
 pub use osc_server::*;
-pub use rosc::{ OscType, OscMessage };
+pub use rosc::{ OscMessage, OscMidiMessage, OscColor, OscPacket, OscType, OscBundle };
 pub use server::*;
 pub use synth::*;
 pub use synth_definition::*;
 
 pub type ScClientResult<T> = Result<T, ScClientError>;
-
-

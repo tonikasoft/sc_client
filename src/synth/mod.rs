@@ -36,12 +36,12 @@ impl<'a> Synth<'a> {
 
     fn init_on_server(&self, add_action: &AddAction, mut args: Vec<OscType>) -> ScClientResult<()> {
         Synth::check_args(&args)?;
-        let mut send_args = vec!(
-            OscType::String(self.name.clone()),
-            OscType::Int(self.id),
-            OscType::Int(add_action.clone() as i32),
-            OscType::Int(self.target_id)
-        );
+        let mut send_args: Vec<OscType> = vec![
+            self.name.clone().into(),
+            self.id.into(),
+            (add_action.clone() as i32).into(),
+            self.target_id.into()
+        ];
         send_args.append(&mut args);
         self.server.osc_server.borrow().send_message("/s_new", Some(send_args))?;
 
@@ -56,6 +56,40 @@ impl<'a> Synth<'a> {
         Ok(())
     }
 
+    pub fn get_control_value<F>(&self, params: &mut Vec<OscType>, on_reply: F) -> ScClientResult<&Self> 
+        where F: Fn(Vec<OscType>) + Send + Sync + 'static {
+            Synth::check_params(&params)?;
+
+            let responder = ControlValueResponder::new(self.id, params.clone(), on_reply);
+            self.server.osc_server.borrow_mut().add_responder(responder)?;
+
+            let mut send_args = vec!(OscType::Int(self.id));
+            send_args.append(params);
+            self.server.osc_server.borrow().send_message("/s_get", Some(send_args))?;
+            Ok(self)
+        }
+
+    fn check_params(params: &Vec<OscType>) -> ScClientResult<()> {
+        if params.len() < 1 {
+            return Err(ScClientError::new("Params cannot be empty"));
+        }
+
+        Ok(())
+    }
+
+    // pub fn get_control_values_range<F>(&self, from: OscType, number_of_params: u32, on_reply: F) -> ScClientResult<&Self> 
+        // where F: Fn(OscType) + Send + Sync + 'static {
+            // let responder = ControlValuesRangeResponder::new(self.id, param.clone(), on_reply);
+            // self.server.osc_server.borrow_mut().add_responder(responder)?;
+            // self.server.osc_server.borrow().send_message("/s_getn",
+                                                         // Some(vec!(
+                                                                 // OscType::Int(self.id),
+                                                                 // param,
+                                                                 // )))?;
+            // Ok(self)
+        // }
+// 
+
     pub fn get_id(&self) -> i32 {
         self.id
     }
@@ -68,13 +102,6 @@ impl<'a> Synth<'a> {
         self.target_id
     }
 
-    pub fn get_control_value<F>(&self, param: OscType, on_reply: F) -> ScClientResult<&Self> 
-        where F: Fn(OscType) + Send + Sync + 'static {
-            let responder = ControlValueResponder::new(self.id, param.clone(), on_reply);
-            self.server.osc_server.borrow_mut().add_responder(responder)?;
-            self.server.osc_server.borrow().send_message("/s_get", Some(vec!(OscType::Int(self.id), param)))?;
-            Ok(self)
-        }
 }
 
 #[derive(Debug, Clone)]

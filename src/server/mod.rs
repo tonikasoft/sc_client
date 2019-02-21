@@ -88,7 +88,7 @@ impl Server {
         let notify_responder = NotifyResponder::new(is_receiving);
         let osc_server = self.osc_server.borrow();
         osc_server.add_responder(notify_responder)?;
-        osc_server.send_message("/notify", Some(vec!(OscType::Int(is_receiving as i32))))?;
+        osc_server.send_message("/notify", Some(vec![(is_receiving as i32).into()]))?;
         Ok(self)
     }
 
@@ -105,7 +105,7 @@ impl Server {
 
     pub fn set_dump_osc_mode(&self, mode: DumpOscMode) -> ScClientResult<&Self> {
         let osc_server = self.osc_server.borrow();
-        osc_server.send_message("/dumpOSC", Some(vec!(OscType::Int(mode as i32))))?;
+        osc_server.send_message("/dumpOSC", Some(vec![(mode as i32).into()]))?;
         Ok(self)
     }
 
@@ -127,7 +127,7 @@ impl Server {
         }
 
     pub fn call_plugin_command(&self, command_name: &str, arguments: Option<Vec<OscType>>) -> ScClientResult<&Self> {
-        let mut send_args = vec!(OscType::String(command_name.to_string()));
+        let mut send_args = vec![command_name.into()];
         if let Some(mut command_args) = arguments {
             send_args.append(&mut command_args);
         };
@@ -138,7 +138,7 @@ impl Server {
 
     pub fn set_error_mode(&self, error_mode: ScServerErrorMode) -> ScClientResult<&Self> {
         let osc_server = self.osc_server.borrow();
-        osc_server.send_message("/error", Some(vec!(OscType::Int(error_mode as i32))))?;
+        osc_server.send_message("/error", Some(vec![(error_mode as i32).into()]))?;
         Ok(self)
     }
 }

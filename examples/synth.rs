@@ -1,5 +1,6 @@
 extern crate sc_client;
 extern crate env_logger;
+extern crate rosc;
 
 use std::env;
 use sc_client::{
@@ -39,7 +40,7 @@ fn main() -> ScClientResult<()> {
         synth_name,
         &AddAction::After,
         -1,
-        vec!(OscType::String("amp".to_string()), OscType::Float(0.1))
+        vec!["amp".into(), 0.1f32.into(), "freq".into(), 440.0f32.into()]
     )?;
     rest(2);
 
@@ -48,15 +49,15 @@ fn main() -> ScClientResult<()> {
         synth_name,
         &AddAction::After,
         -1,
-        vec!(OscType::String("amp".to_string()), OscType::Float(0.3))
+        vec!("amp".into(), 0.3f32.into())
     )?;
     rest(2);
 
-    synth_2.get_control_value(OscType::String("amp".to_string()), |value| {
+    synth_2.get_control_value(&mut vec!["amp".into(), "att".into()], |value| {
         println!("amp value of synth_2 is {:?}", value);
     })?;
 
-    synth.get_control_value(OscType::String("amp".to_string()), |value| {
+    synth.get_control_value(&mut vec!["amp".into()], |value| {
         println!("amp value of synth is {:?}", value);
     })?;
 
@@ -71,3 +72,4 @@ fn main() -> ScClientResult<()> {
 fn rest(secs: u64) {
     std::thread::sleep(std::time::Duration::from_secs(secs));
 }
+
