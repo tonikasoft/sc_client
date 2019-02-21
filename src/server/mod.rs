@@ -57,13 +57,13 @@ impl Server {
 
     pub fn shutdown(&self) -> ScClientResult<&Self> {
         let mut proc = self.sc_server_process.borrow_mut();
-        let osc_server = self.osc_server.borrow();
+        let mut osc_server = self.osc_server.borrow_mut();
         if proc.is_some() {
             let quit_responder = QuitResponder{};
             osc_server.add_responder(quit_responder)?;
 
             osc_server.send_message("/quit", None)?;
-            self.sync()?;
+            osc_server.sync()?;
 
             proc.as_mut().unwrap().wait_for_finish()?;
 
