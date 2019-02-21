@@ -28,9 +28,7 @@ fn main() -> ScClientResult<()> {
     let path_to_synthdef = "examples/synthdefs/sc_client_test_1.scsyndef";
     let synth_name = "sc_client_test_1";
 
-    let synthdef = SynthDefinition::new(&server);
-
-    synthdef.load(&path_to_synthdef)?;
+    SynthDefinition::load(&server, &path_to_synthdef)?;
     server.sync()?;
 
     Synth::new(&server, synth_name, &AddAction::Tail, -1, vec!())?;
@@ -45,13 +43,26 @@ fn main() -> ScClientResult<()> {
     )?;
     rest(2);
 
+    let synth_2 = Synth::new(
+        &server,
+        synth_name,
+        &AddAction::After,
+        -1,
+        vec!(OscType::String("amp".to_string()), OscType::Float(0.3))
+    )?;
+    rest(2);
+
+    synth_2.get_control_value(OscType::String("amp".to_string()), |value| {
+        println!("amp value of synth_2 is {:?}", value);
+    })?;
+
     synth.get_control_value(OscType::String("amp".to_string()), |value| {
-        println!("amp value is {:?}", value);
+        println!("amp value of synth is {:?}", value);
     })?;
 
     server.sync()?;
 
-    synthdef.free(synth_name)?;
+    SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
 
     Ok(())

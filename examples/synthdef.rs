@@ -34,33 +34,32 @@ fn main() -> ScClientResult<()> {
     let mut buffer = Vec::new();
     synthdef_file.read_to_end(&mut buffer)?;
 
-    let synthdef = SynthDefinition::new(&server);
-    synthdef.send(&buffer)?;
+    SynthDefinition::send(&server, &buffer)?;
 
     server.sync()?;
 
     Synth::new(&server, synth_name, &AddAction::Tail, -1, vec!())?;
     rest(2);
-    synthdef.free(synth_name)?;
+    SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
 
     // load file
-    synthdef.load(&path_to_synthdef)?;
+    SynthDefinition::load(&server, &path_to_synthdef)?;
     server.sync()?;
 
     Synth::new(&server, synth_name, &AddAction::After, -1, vec!())?;
     rest(2);
 
-    synthdef.free(synth_name)?;
+    SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
 
     // load directory
-    synthdef.load_directory("examples/synthdefs")?;
+    SynthDefinition::load_directory(&server, "examples/synthdefs")?;
     server.sync()?;
 
     Synth::new(&server, synth_name, &AddAction::After, -1, vec!())?;
     rest(2);
-    synthdef.free(synth_name)?;
+    SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
 
     Ok(())
