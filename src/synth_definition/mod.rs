@@ -1,5 +1,4 @@
 use crate::{
-    OscType,
     ScClientResult,
     Server,
 };

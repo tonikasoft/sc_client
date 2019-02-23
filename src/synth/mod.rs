@@ -1,4 +1,3 @@
-extern crate uid;
 mod control_value_responder;
 use crate::{
     OscType,
@@ -6,7 +5,7 @@ use crate::{
     ScClientResult,
     Server,
 };
-use self::uid::Id;
+use uid::Id;
 use self::control_value_responder::ControlValueResponder;
 
 pub struct Synth<'a> {

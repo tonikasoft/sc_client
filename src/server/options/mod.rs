@@ -1,6 +1,8 @@
 #[cfg(test)] mod tests;
 use config::{Config, ConfigError, File};
 use std::path::Path;
+use serde_derive::{Serialize, Deserialize};
+use log::info;
 
 #[derive(Serialize, Deserialize, Clone)] 
 pub struct Options {

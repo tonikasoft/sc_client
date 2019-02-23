@@ -2,6 +2,7 @@
 name = "sc_client"
 version = "0.1.0"
 authors = ["Ales Tsurko <ales.tsurko@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 config = "^0.9"

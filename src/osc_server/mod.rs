@@ -5,6 +5,11 @@ use std::thread;
 use std::sync::{Arc, RwLock};
 use crate::{ScClientError, ScClientResult};
 use std::thread::Thread;
+use log::{
+    debug,
+    error,
+    warn,
+};
 
 type Responders = RwLock<Vec<Box<OscResponder>>>;
 
@@ -200,8 +205,8 @@ impl OscResponder for SyncResponder {
 }
 
 pub trait OscResponder: Send + Sync + 'static {
-    fn callback(&self, &OscMessage) -> ScClientResult<()>;
-    fn get_after_call_action(&self, &OscMessage) -> AfterCallAction;
+    fn callback(&self, message: &OscMessage) -> ScClientResult<()>;
+    fn get_after_call_action(&self, message: &OscMessage) -> AfterCallAction;
     fn get_address(&self) -> String;
 }
 

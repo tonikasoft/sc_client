@@ -4,6 +4,7 @@ use crate::{
     AfterCallAction,
     ScClientResult,
 };
+use log::info;
 
 pub struct NotifyResponder {
     is_receiving: bool,

@@ -4,6 +4,7 @@ use crate::{
     AfterCallAction,
     ScClientResult,
 };
+use log::info;
 
 pub struct QuitResponder;
 impl OscResponder for QuitResponder {
