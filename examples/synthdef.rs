@@ -27,7 +27,7 @@ fn main() -> ScClientResult<()> {
 
     server.sync()?;
 
-    Synth::new(&server, synth_name, &AddAction::Tail, -1, vec![])?;
+    Synth::new(&server, synth_name, &AddAction::Tail, -1, &vec![])?;
     rest(2);
     SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
@@ -36,7 +36,7 @@ fn main() -> ScClientResult<()> {
     SynthDefinition::load(&server, &path_to_synthdef)?;
     server.sync()?;
 
-    Synth::new(&server, synth_name, &AddAction::After, -1, vec![])?;
+    Synth::new(&server, synth_name, &AddAction::After, -1, &vec![])?;
     rest(2);
 
     SynthDefinition::free(&server, synth_name)?;
@@ -46,7 +46,7 @@ fn main() -> ScClientResult<()> {
     SynthDefinition::load_directory(&server, "examples/synthdefs")?;
     server.sync()?;
 
-    Synth::new(&server, synth_name, &AddAction::After, -1, vec![])?;
+    Synth::new(&server, synth_name, &AddAction::After, -1, &vec![])?;
     rest(2);
     SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
