@@ -1,7 +1,7 @@
 use crate::*;
 use os_pipe::{pipe, PipeReader, PipeWriter};
 use std::io::{BufRead, BufReader};
-use std::process::{Command, Child, ExitStatus};
+use std::process::{Child, Command, ExitStatus};
 use std::thread;
 
 pub struct ScServerProcess {
@@ -18,11 +18,16 @@ impl ScServerProcess {
             .args(options.to_args())
             .stdout(pipe_writer.try_clone().unwrap())
             .stderr(pipe_writer.try_clone().unwrap())
-            .spawn() {
-                Err(e) => panic!("couldn't start {}: {}", options.path, e),
-                Ok(process) => process,
-            };
-        let process = ScServerProcess { child, pipe_reader, pipe_writer };
+            .spawn()
+        {
+            Err(e) => panic!("couldn't start {}: {}", options.path, e),
+            Ok(process) => process,
+        };
+        let process = ScServerProcess {
+            child,
+            pipe_reader,
+            pipe_writer,
+        };
         process.guess_ready_and_pipe_stdout()?;
         Ok(process)
     }
@@ -37,7 +42,9 @@ impl ScServerProcess {
             loop {
                 child_out.read_line(&mut line).unwrap();
                 print!("{}", line);
-                if line.contains("ready") { current_thread.unpark() }
+                if line.contains("ready") {
+                    current_thread.unpark()
+                }
                 line.clear();
                 thread::sleep(std::time::Duration::from_millis(1));
             }

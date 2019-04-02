@@ -1,15 +1,12 @@
-use rosc::{encoder, decoder, OscPacket, OscMessage, OscBundle, OscType};
-use std::net::{SocketAddrV4, SocketAddr, UdpSocket};
+use crate::ScClientResult;
+use failure::Fail;
+use log::{debug, error, warn};
+use rosc::{decoder, encoder, OscBundle, OscError, OscMessage, OscPacket, OscType};
+use std::net::{SocketAddr, SocketAddrV4, UdpSocket};
 use std::str::FromStr;
-use std::thread;
 use std::sync::{Arc, RwLock};
-use crate::{ScClientError, ScClientResult};
+use std::thread;
 use std::thread::Thread;
-use log::{
-    debug,
-    error,
-    warn,
-};
 
 type Responders = RwLock<Vec<Box<OscResponder>>>;
 
@@ -24,12 +21,18 @@ pub struct OscServer {
 impl OscServer {
     //! The addresses are in `ip:port` format.
     pub fn new(client_address: &str, server_address: &str) -> Self {
-        let client_addr = SocketAddrV4::from_str(client_address)
-            .expect(&format!("Error init client SocketAddrV4 from string {}", client_address));
-        let server_addr = SocketAddrV4::from_str(server_address)
-            .expect(&format!("Error init server SocketAddrV4 from string {}", server_address));
-        let socket = UdpSocket::bind(client_address)
-            .expect(&format!("Cannot bind UdpSocket to address: {}", client_address));
+        let client_addr = SocketAddrV4::from_str(client_address).expect(&format!(
+            "Error init client SocketAddrV4 from string {}",
+            client_address
+        ));
+        let server_addr = SocketAddrV4::from_str(server_address).expect(&format!(
+            "Error init server SocketAddrV4 from string {}",
+            server_address
+        ));
+        let socket = UdpSocket::bind(client_address).expect(&format!(
+            "Cannot bind UdpSocket to address: {}",
+            client_address
+        ));
         let mut osc_server = OscServer {
             client_address: client_addr,
             server_address: server_addr,
@@ -44,10 +47,11 @@ impl OscServer {
     }
 
     fn init_sync_responder(&mut self) {
-        // we can't process it in on_message, because we need current thread, which is out 
+        // we can't process it in on_message, because we need current thread, which is out
         // of the on_message context
         let sync_responder = SyncResponder::new();
-        self.responders.write()
+        self.responders
+            .write()
             .expect("can't write responder")
             .push(Box::new(sync_responder));
     }
@@ -67,22 +71,34 @@ impl OscServer {
             let mut buf = [0u8; rosc::decoder::MTU];
             loop {
                 match socket.recv_from(&mut buf) {
-                    Ok((size, addr)) => OscServer::on_receive_packet(&addr, &buf, size, &server_address, &mut responders)
-                        .expect("unexpected OSC error"),
-                    Err(e) => error!("Error receiving from socket: {}", e)
+                    Ok((size, addr)) => OscServer::on_receive_packet(
+                        &addr,
+                        &buf,
+                        size,
+                        &server_address,
+                        &mut responders,
+                    )
+                    .expect("unexpected OSC error"),
+                    Err(e) => error!("Error receiving from socket: {}", e),
                 }
             }
         });
     }
 
-    fn on_receive_packet(address: &SocketAddr, buf: &[u8], size: usize, server_address: &SocketAddrV4, responders: &mut Arc<Responders>) -> ScClientResult<()> {
+    fn on_receive_packet(
+        address: &SocketAddr,
+        buf: &[u8],
+        size: usize,
+        server_address: &SocketAddrV4,
+        responders: &mut Arc<Responders>,
+    ) -> ScClientResult<()> {
         if *address != SocketAddr::from(*server_address) {
             return Ok(warn!("Reject packet from unknow host: {}", address));
         }
 
         match decoder::decode(&buf[..size]) {
             Ok(packet) => OscServer::handle_packet(packet, responders),
-            Err(e) => Err(ScClientError::new(&format!("cannot decode packet: {:?}", e)))
+            Err(e) => Err(OscServerError::DecodePacket(e).into()),
         }
     }
 
@@ -97,7 +113,7 @@ impl OscServer {
         match message.addr.as_ref() {
             "/done" => OscServer::on_done_message(&message, responders),
             "/fail" => OscServer::on_fail_message(&message),
-            _ => OscServer::call_responders_for_key(&message.addr, &message, responders)
+            _ => OscServer::call_responders_for_key(&message.addr, &message, responders),
         }
     }
 
@@ -106,22 +122,30 @@ impl OscServer {
         Ok(())
     }
 
-    fn on_done_message(message: &OscMessage, responders: &mut Arc<Responders>) -> ScClientResult<()> {
+    fn on_done_message(
+        message: &OscMessage,
+        responders: &mut Arc<Responders>,
+    ) -> ScClientResult<()> {
         debug!("get /done message: {:?}", message);
         match message.args.as_ref() {
-            Some(args) => { 
+            Some(args) => {
                 if let OscType::String(key) = args.clone().remove(0) {
                     return OscServer::call_responders_for_key(&key, message, responders);
                 };
                 Ok(())
-            },
-            None => return Ok(debug!("Got /done message, but without any args"))
+            }
+            None => return Ok(debug!("Got /done message, but without any args")),
         }
     }
 
-    fn call_responders_for_key(key: &str, message: &OscMessage, responders: &mut Arc<Responders>) -> ScClientResult<()> {
-        responders.write()
-            .map_err(|e| ScClientError::new(&format!("{}", e)))?
+    fn call_responders_for_key(
+        key: &str,
+        message: &OscMessage,
+        responders: &mut Arc<Responders>,
+    ) -> ScClientResult<()> {
+        responders
+            .write()
+            .map_err(|e| OscServerError::CallResponder(String::new()))?
             .retain(|ref responder| {
                 if responder.get_address() == key {
                     responder.callback(message).unwrap();
@@ -148,33 +172,39 @@ impl OscServer {
     /// Adds [`OscResponder`](trait.OscResponder.html) to perform on getting message to address.
     pub fn add_responder<T: OscResponder>(&self, responder: T) -> ScClientResult<()> {
         if responder.get_address() == "/synced" {
-            return Err(ScClientError::new("can't add responder for reserved address"));
+            return Err(OscServerError::AddResponder(
+                "can't add responder for reserved address".to_string(),
+            )
+            .into());
         }
 
-        Ok(self.responders
-           .write()
-           .map_err(|e| ScClientError::new(&format!("{}", e)))?
-           .push(Box::new(responder)))
+        Ok(self
+            .responders
+            .write()
+            .map_err(|e| OscServerError::AddResponder(format!("{}", e)))?
+            .push(Box::new(responder)))
     }
 
     pub fn remove_responders_for_address(&mut self, address: &str) -> ScClientResult<()> {
-        Ok(self.responders
-           .write()
-           .map_err(|e| ScClientError::new(&format!("{}", e)))?
-           .retain(|ref responder| {
-               responder.get_address() != address.to_string()
-           }))
+        Ok(self
+            .responders
+            .write()
+            .map_err(|e| OscServerError::RemoveResponder(format!("{}", e)))?
+            .retain(|ref responder| responder.get_address() != address.to_string()))
     }
 
-    pub fn send_message(&self, address: &str, arguments: Option<Vec<OscType>>) -> ScClientResult<usize> {
+    pub fn send_message(
+        &self,
+        address: &str,
+        arguments: Option<Vec<OscType>>,
+    ) -> ScClientResult<usize> {
         let message = OscMessage {
             addr: address.to_string(),
             args: arguments,
         };
         let msg_buf: Vec<u8> = encoder::encode(&OscPacket::Message(message))
-            .map_err(|e| ScClientError::new(&format!("{:?}", e)))?;
-        Ok(self.udp_socket.send_to(&msg_buf, self.server_address)
-            .map_err(|e| ScClientError::new(&format!("{}", e)))?)
+            .map_err(|e| OscServerError::SendMessage(e))?;
+        Ok(self.udp_socket.send_to(&msg_buf, self.server_address)?)
     }
 }
 
@@ -210,8 +240,22 @@ pub trait OscResponder: Send + Sync + 'static {
     fn get_address(&self) -> String;
 }
 
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub enum AfterCallAction {
     None,
     Reschedule,
+}
+
+#[derive(Fail, Debug)]
+enum OscServerError {
+    #[fail(display = "Error decode packet: {:?}", _0)]
+    DecodePacket(OscError),
+    #[fail(display = "Error add responder: {}", _0)]
+    AddResponder(String),
+    #[fail(display = "Error call responder: {}", _0)]
+    CallResponder(String),
+    #[fail(display = "Error remove responder: {}", _0)]
+    RemoveResponder(String),
+    #[fail(display = "Error send message: {:?}", _0)]
+    SendMessage(OscError),
 }

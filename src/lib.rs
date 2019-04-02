@@ -5,7 +5,7 @@
 //! Put options inside a configuration file, which you pass to [`Options`](server/struct.Options.html) at initialization.
 //! All of the parameters are optional. If a parameter isn't specified, the default value will be used.
 //! The next options are available:
-//! 
+//!
 //! | Option                           | Type                 | Default                                       | Description                                                                                                                                                                                                                                                                                                       |
 //! | ------                           | ------               | -------                                       | :-----------                                                                                                                                                                                                                                                                                                      |
 //! | `address`                        | **String**           | `127.0.0.1`                                   | An IP address.                                                                                                                                                                                                                                                                                                    |
@@ -37,19 +37,17 @@
 //! | `udp_port_number`                | **Unsigned Integer** | `4242`                                        | A port number 0-65535. Only UDP supported.                                                                                                                                                                                                                                                                        |
 //! | `ugen_plugins_path`              | **Array of Strings** | `None`                                        | An array of paths. If specified, standard paths are NOT searched for plugins.                                                                                                                                                                                                                                     |
 //! | `verbosity`                      | **Integer**          | `0`                                           | Controls the verbosity of server messages. A value of 0 is normal behaviour. -1 suppresses informational messages. -2 suppresses informational and many error messages, as well as messages from Poll.                                                                                                            |
-//! 
+//!
 //! > **Note**, `scsynth` has an [issue](https://github.com/supercollider/supercollider/issues/2488) whith setting the same sample rate, which was already set.
 //! > The workaround is to use `supernova` or not to set `preferred_sample_rate` for `scsynth` (or set it to `0`). You can set sample rate on your system's settings level.
-mod error;
 mod osc_server;
 mod server;
 mod synth;
 mod synth_definition;
-pub use error::ScClientError;
+pub mod types;
 pub use osc_server::*;
-pub use rosc::{ OscMessage, OscMidiMessage, OscColor, OscPacket, OscType, OscBundle };
 pub use server::*;
 pub use synth::*;
 pub use synth_definition::*;
 
-pub type ScClientResult<T> = Result<T, ScClientError>;
+pub type ScClientResult<T> = Result<T, failure::Error>;

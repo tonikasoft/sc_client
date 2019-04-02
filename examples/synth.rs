@@ -1,18 +1,7 @@
-extern crate sc_client;
-extern crate env_logger;
-extern crate rosc;
-
-use std::env;
 use sc_client::{
-    AddAction,
-    DumpOscMode,
-    Options, 
-    OscType,
-    ScClientResult, 
-    Server, 
-    Synth,
-    SynthDefinition,
+    AddAction, DumpOscMode, Options, ScClientResult, Server, Synth, SynthDefinition,
 };
+use std::env;
 
 fn main() -> ScClientResult<()> {
     env::set_var("RUST_LOG", "sc_client=debug");
@@ -32,7 +21,7 @@ fn main() -> ScClientResult<()> {
     SynthDefinition::load(&server, &path_to_synthdef)?;
     server.sync()?;
 
-    Synth::new(&server, synth_name, &AddAction::Tail, -1, vec!())?;
+    Synth::new(&server, synth_name, &AddAction::Tail, -1, &vec![])?;
     rest(2);
 
     let synth = Synth::new(
@@ -40,7 +29,10 @@ fn main() -> ScClientResult<()> {
         synth_name,
         &AddAction::After,
         -1,
-        vec!["amp".into(), 0.1f32.into(), "freq".into(), 440.0f32.into()]
+        &vec![
+            ("amp".into(), 0.1f32.into()).into(),
+            ("freq".into(), 440.0f32.into()).into(),
+        ],
     )?;
     rest(2);
 
@@ -49,12 +41,16 @@ fn main() -> ScClientResult<()> {
         synth_name,
         &AddAction::After,
         -1,
-        vec!("amp".into(), 0.3f32.into())
+        &vec![("amp".into(), 0.3f32.into()).into()],
     )?;
     rest(2);
 
     synth_2.get_control_value(&mut vec!["amp".into(), "att".into()], |value| {
-        println!("amp value of synth_2 is {:?}", value);
+        println!("synth_2's amp: {:?} att: {:?}", value[0], value[1]);
+    })?;
+
+    synth_2.get_control_value(&mut vec!["att".into()], |value| {
+        println!("synth_2's att: {:?}", value[0]);
     })?;
 
     synth.get_control_value(&mut vec!["amp".into()], |value| {
@@ -72,4 +68,3 @@ fn main() -> ScClientResult<()> {
 fn rest(secs: u64) {
     std::thread::sleep(std::time::Duration::from_secs(secs));
 }
-

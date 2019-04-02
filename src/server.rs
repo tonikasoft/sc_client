@@ -1,21 +1,17 @@
 mod notify_responder;
 mod options;
 mod quit_responder;
+mod sc_server_process;
 mod status_responder;
 mod version_responder;
-mod sc_server_process;
-pub use self::options::Options;
 use self::notify_responder::NotifyResponder;
+pub use self::options::Options;
 use self::quit_responder::QuitResponder;
+use self::sc_server_process::ScServerProcess;
 use self::status_responder::StatusResponder;
 use self::version_responder::VersionResponder;
-use crate::{
-    OscServer, 
-    OscType, 
-    ScClientError, 
-    ScClientResult,
-};
-use self::sc_server_process::ScServerProcess;
+use crate::{types::OscType, OscServer, ScClientResult};
+use failure::Fail;
 use std::cell::RefCell;
 
 pub struct Server {
@@ -41,7 +37,7 @@ impl Server {
         let mut proc = self.sc_server_process.borrow_mut();
 
         if proc.is_some() {
-            return Err(ScClientError::new("SuperCollider server is already running."));
+            return Err(ServerError::AlreadyRunning.into());
         }
 
         *proc = Some(ScServerProcess::new(&self.options.borrow())?);
@@ -59,7 +55,7 @@ impl Server {
         let mut proc = self.sc_server_process.borrow_mut();
         let mut osc_server = self.osc_server.borrow_mut();
         if proc.is_some() {
-            let quit_responder = QuitResponder{};
+            let quit_responder = QuitResponder {};
             osc_server.add_responder(quit_responder)?;
 
             osc_server.send_message("/quit", None)?;
@@ -83,7 +79,7 @@ impl Server {
         osc_server.sync()?;
         Ok(self)
     }
-    
+
     pub fn set_receive_notifications(&self, is_receiving: bool) -> ScClientResult<&Self> {
         let notify_responder = NotifyResponder::new(is_receiving);
         let osc_server = self.osc_server.borrow();
@@ -94,14 +90,16 @@ impl Server {
 
     /// Get status and perform callback with [`ServerStatus`](server/struct.ServerStatus.html) as the parameter.
     /// > status won't return, if the server is in dump_osc mode
-    pub fn get_status<F>(&self, on_reply: F) -> ScClientResult<&Self> 
-        where F: Fn(ServerStatus) + Send + Sync + 'static {
-            let status_responder = StatusResponder::new(on_reply);
-            let osc_server = self.osc_server.borrow();
-            osc_server.add_responder(status_responder)?;
-            osc_server.send_message("/status", None)?;
-            Ok(self)
-        }
+    pub fn get_status<F>(&self, on_reply: F) -> ScClientResult<&Self>
+    where
+        F: Fn(ServerStatus) + Send + Sync + 'static,
+    {
+        let status_responder = StatusResponder::new(on_reply);
+        let osc_server = self.osc_server.borrow();
+        osc_server.add_responder(status_responder)?;
+        osc_server.send_message("/status", None)?;
+        Ok(self)
+    }
 
     pub fn set_dump_osc_mode(&self, mode: DumpOscMode) -> ScClientResult<&Self> {
         let osc_server = self.osc_server.borrow();
@@ -118,15 +116,21 @@ impl Server {
     /// Get server version and perform callback with
     /// [`ServerVersion`](server/struct.ServerVersion.html) as the parameter.
     pub fn get_version<F>(&self, on_reply: F) -> ScClientResult<&Self>
-        where F: Fn(ServerVersion) + Send + Sync + 'static {
-            let version_responder = VersionResponder::new(on_reply);
-            let osc_server = self.osc_server.borrow();
-            osc_server.add_responder(version_responder)?;
-            osc_server.send_message("/version", None)?;
-            Ok(self)
-        }
+    where
+        F: Fn(ServerVersion) + Send + Sync + 'static,
+    {
+        let version_responder = VersionResponder::new(on_reply);
+        let osc_server = self.osc_server.borrow();
+        osc_server.add_responder(version_responder)?;
+        osc_server.send_message("/version", None)?;
+        Ok(self)
+    }
 
-    pub fn call_plugin_command(&self, command_name: &str, arguments: Option<Vec<OscType>>) -> ScClientResult<&Self> {
+    pub fn call_plugin_command(
+        &self,
+        command_name: &str,
+        arguments: Option<Vec<OscType>>,
+    ) -> ScClientResult<&Self> {
         let mut send_args = vec![command_name.into()];
         if let Some(mut command_args) = arguments {
             send_args.append(&mut command_args);
@@ -148,8 +152,7 @@ impl Server {
 impl Drop for Server {
     fn drop(&mut self) {
         if let Some(ref mut process) = *self.sc_server_process.borrow_mut() {
-            process.kill_child()
-                .expect("can't kill SC server");
+            process.kill_child().expect("can't kill SC server");
         };
     }
 }
@@ -204,4 +207,10 @@ pub struct ServerVersion {
     pub git_branch: String,
     /// First seven hex digits of the commit hash.
     pub commit_hash: String,
+}
+
+#[derive(Fail, Debug)]
+pub enum ServerError {
+    #[fail(display = "SuperCollider server is already running")]
+    AlreadyRunning,
 }

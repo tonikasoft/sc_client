@@ -1,18 +1,7 @@
-extern crate sc_client;
-extern crate env_logger;
-
+use sc_client::{AddAction, DumpOscMode, Options, ScClientResult, Server, Synth, SynthDefinition};
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use sc_client::{
-    AddAction,
-    DumpOscMode,
-    Options, 
-    ScClientResult, 
-    Server, 
-    Synth,
-    SynthDefinition,
-};
 
 fn main() -> ScClientResult<()> {
     env::set_var("RUST_LOG", "sc_client=debug");
@@ -38,7 +27,7 @@ fn main() -> ScClientResult<()> {
 
     server.sync()?;
 
-    Synth::new(&server, synth_name, &AddAction::Tail, -1, vec!())?;
+    Synth::new(&server, synth_name, &AddAction::Tail, -1, vec![])?;
     rest(2);
     SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
@@ -47,7 +36,7 @@ fn main() -> ScClientResult<()> {
     SynthDefinition::load(&server, &path_to_synthdef)?;
     server.sync()?;
 
-    Synth::new(&server, synth_name, &AddAction::After, -1, vec!())?;
+    Synth::new(&server, synth_name, &AddAction::After, -1, vec![])?;
     rest(2);
 
     SynthDefinition::free(&server, synth_name)?;
@@ -57,7 +46,7 @@ fn main() -> ScClientResult<()> {
     SynthDefinition::load_directory(&server, "examples/synthdefs")?;
     server.sync()?;
 
-    Synth::new(&server, synth_name, &AddAction::After, -1, vec!())?;
+    Synth::new(&server, synth_name, &AddAction::After, -1, vec![])?;
     rest(2);
     SynthDefinition::free(&server, synth_name)?;
     server.sync()?;
